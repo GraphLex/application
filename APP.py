@@ -1,26 +1,15 @@
-# --- Imports ---
+#Imports 
 import streamlit as st
 import matplotlib.pyplot as plt
-import plotly.express as px
 from collections import Counter
 import pandas as pd
-
-#TODO Things to work on and improve.
-#Create Word2Vec in the app. Include some numerical values
-#A graph or something of distances.
-#A controller that indicates which words are the closest
-#Type the word in english and Hebrew. Transliterating between the alphabet
-#Which other visualizations are useful for scholars?
-#Use pandas
-#Look for software and tools and apps. Look through bible tools and 
-#Set up a toggle bar to where we can see different visualizations: coccurence network, word embedding
-#Increase complexity
-#Show what is relevant. Consider which functions are relevant for Hebrew
 
 # =====================================================
 # Hebrew Word Visualization App
 # Senior Capstone Prototype
 # =====================================================
+
+#TODO: Get reliable results. App allows people to select different approach, either PCA or the other option
 
 # --- App Title ---
 st.title("Hebrew Word Visualization App (Working Prototype)")
@@ -38,7 +27,7 @@ visualization_choice = st.sidebar.radio(
         "Character Frequency", 
         "Word Length Distribution", 
         "Co-occurrence Network (Coming Soon)", 
-        "Word Embeddings (Coming Soon)"
+        "Word Embeddings"
     ]
 )
 
@@ -81,28 +70,47 @@ if user_input:
         ax.set_title("Hebrew Character Frequency")
         st.pyplot(fig)
 
-    # --- 3. Word Length Distribution ---
-    elif visualization_choice == "Word Length Distribution":
-        st.subheader("Distribution of Word Lengths")
+        # Also show table of counts
+        df_freq = pd.DataFrame(list(char_freq.items()), columns=["Character", "Frequency"])
+        st.dataframe(df_freq)
 
-        # Plot with Plotly
-        fig2 = px.histogram(
-            df_words, 
-            x="Length", 
-            nbins=10, 
-            title="Word Length Distribution"
-        )
-        st.plotly_chart(fig2)
+    # --- 3. Word Embeddenings ---
+    # Plot the result of our TSNE with the label color coded
+    # A lot of the stuff here is about making the plot look pretty and not TSNE
+    # Load your TSNE data
+tsne_result_df = pd.read_csv("tsne.csv", sep="\t", header=None, names=['tsne_1', 'tsne_2'])
+
+# If you have labels (for example, in a list y), you can add them:
+# tsne_result_df['label'] = y
+# Otherwise, create a dummy label to make plotting easier
+tsne_result_df['label'] = 0  # all same label for now
+
+# Plot
+fig, ax = plt.subplots(1, figsize=(8,8))
+sns.scatterplot(
+    x='tsne_1', 
+    y='tsne_2', 
+    hue='label', 
+    data=tsne_result_df, 
+    ax=ax, 
+    s=120,
+    palette='viridis'  # optional color palette
+)
+
+# Set limits and aspect ratio
+lim = (tsne_result_df[['tsne_1','tsne_2']].min().min()-5, 
+       tsne_result_df[['tsne_1','tsne_2']].max().max()+5)
+ax.set_xlim(lim)
+ax.set_ylim(lim)
+ax.set_aspect('equal')
+ax.legend(bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0.0)
+
+plt.show()
 
     # --- 4. Placeholder for Co-occurrence Network ---
     elif visualization_choice == "Co-occurrence Network (Coming Soon)":
         st.subheader("Co-occurrence Network")
         st.info("This feature will display a network graph of words that frequently occur together. (Work in Progress)")
-
-    # --- 5. Placeholder for Word Embeddings ---
-    elif visualization_choice == "Word Embeddings (Coming Soon)":
-        st.subheader("Word Embeddings Visualization")
-        st.info("This feature will show Word2Vec embeddings and similarity plots. (Work in Progress)")
 
 # =====================================================
 # If no input is given yet
