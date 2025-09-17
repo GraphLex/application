@@ -1,57 +1,79 @@
-#Imports 
+# =====================================================
+# Hebrew Word Visualization App (Streamlit)
+# Senior Capstone Prototype
+# =====================================================
+
+# --- Imports ---
 import streamlit as st
 import matplotlib.pyplot as plt
 from collections import Counter
 import pandas as pd
 
 # =====================================================
-# Hebrew Word Visualization App
-# Senior Capstone Prototype
+# App Title
 # =====================================================
-
-#TODO: Get reliable results. App allows people to select different approach, either PCA or the other option
-
-# --- App Title ---
 st.title("Hebrew Word Visualization App (Working Prototype)")
 
-# --- User Input Section ---
-st.subheader("Enter Hebrew words")
-user_input = st.text_input("Type Hebrew words separated by spaces:")
-
-# --- Sidebar Toggle for Visualization Options ---
+# =====================================================
+# Sidebar Options
+# =====================================================
 st.sidebar.header("Visualization Options")
 visualization_choice = st.sidebar.radio(
     "Choose a visualization:",
     [
-        "Basic Stats", 
-        "Character Frequency", 
-        "Word Length Distribution", 
-        "Co-occurrence Network (Coming Soon)", 
+        "Basic Stats",
+        "Character Frequency",
+        "Word Length Distribution",
+        "Co-occurrence Network (Coming Soon)",
         "Word Embeddings"
     ]
 )
 
 # =====================================================
-# If user has entered words, process them
+# User Input
+# =====================================================
+st.subheader("Enter Hebrew words")
+user_input = st.text_input("Type Hebrew words separated by spaces:")
+
+# =====================================================
+# Function to Plot TSNE with Matplotlib
+# =====================================================
+def plot_tsne(df, label_col='label'):
+    fig, ax = plt.subplots(figsize=(8, 8))
+    labels = df[label_col].unique()
+    
+    # Plot each label separately
+    for lbl in labels:
+        subset = df[df[label_col] == lbl]
+        ax.scatter(subset['tsne_1'], subset['tsne_2'], s=120, label=f"Label {lbl}")
+    
+    # Set limits and equal aspect ratio
+    lim = (
+        df[['tsne_1', 'tsne_2']].min().min() - 5,
+        df[['tsne_1', 'tsne_2']].max().max() + 5
+    )
+    ax.set_xlim(lim)
+    ax.set_ylim(lim)
+    ax.set_aspect('equal')
+    ax.legend(bbox_to_anchor=(1.05, 1), loc=2)
+    ax.set_title("t-SNE Visualization")
+    st.pyplot(fig)
+
+# =====================================================
+# Main Processing Logic
 # =====================================================
 if user_input:
-    # Split user input into a list of words
+    # --- Split input and precompute data ---
     words = user_input.split()
-
-    # --- Precompute Common Data ---
-    chars = "".join(words)                         # Concatenate all words into a single string
-    char_freq = Counter(chars)                     # Count frequency of each character
-    word_lengths = [len(w) for w in words]         # List of word lengths
-    df_words = pd.DataFrame({                      # DataFrame for word analysis
-        "Word": words, 
+    chars = "".join(words)
+    char_freq = Counter(chars)
+    word_lengths = [len(w) for w in words]
+    df_words = pd.DataFrame({
+        "Word": words,
         "Length": word_lengths
     })
 
-    # =====================================================
-    # Visualization Branching Logic
-    # =====================================================
-
-    # --- 1. Basic Stats ---
+    # --- Visualization Branching ---
     if visualization_choice == "Basic Stats":
         st.subheader("Basic Word Analysis")
         st.write(f"Total words: {len(words)}")
@@ -59,61 +81,45 @@ if user_input:
         st.write("Words Entered:")
         st.write(words)
 
-    # --- 2. Character Frequency ---
     elif visualization_choice == "Character Frequency":
         st.subheader("Character Frequency (Hebrew letters)")
         st.write(char_freq)  # Show raw counts
 
-        # Plot with Matplotlib
+        # Plot character frequency
         fig, ax = plt.subplots()
         ax.bar(char_freq.keys(), char_freq.values())
         ax.set_title("Hebrew Character Frequency")
+        ax.set_xlabel("Character")
+        ax.set_ylabel("Frequency")
         st.pyplot(fig)
 
-        # Also show table of counts
+        # Display as a table
         df_freq = pd.DataFrame(list(char_freq.items()), columns=["Character", "Frequency"])
         st.dataframe(df_freq)
 
-    # --- 3. Word Embeddenings ---
-    # Plot the result of our TSNE with the label color coded
-    # A lot of the stuff here is about making the plot look pretty and not TSNE
-    # Load your TSNE data
-tsne_result_df = pd.read_csv("tsne.csv", sep="\t", header=None, names=['tsne_1', 'tsne_2'])
+    elif visualization_choice == "Word Length Distribution":
+        st.subheader("Word Length Distribution")
+        fig, ax = plt.subplots()
+        ax.hist(word_lengths, bins=range(1, max(word_lengths)+2), edgecolor='black')
+        ax.set_title("Distribution of Word Lengths")
+        ax.set_xlabel("Word Length")
+        ax.set_ylabel("Frequency")
+        st.pyplot(fig)
 
-# If you have labels (for example, in a list y), you can add them:
-# tsne_result_df['label'] = y
-# Otherwise, create a dummy label to make plotting easier
-tsne_result_df['label'] = 0  # all same label for now
-
-# Plot
-fig, ax = plt.subplots(1, figsize=(8,8))
-sns.scatterplot(
-    x='tsne_1', 
-    y='tsne_2', 
-    hue='label', 
-    data=tsne_result_df, 
-    ax=ax, 
-    s=120,
-    palette='viridis'  # optional color palette
-)
-
-# Set limits and aspect ratio
-lim = (tsne_result_df[['tsne_1','tsne_2']].min().min()-5, 
-       tsne_result_df[['tsne_1','tsne_2']].max().max()+5)
-ax.set_xlim(lim)
-ax.set_ylim(lim)
-ax.set_aspect('equal')
-ax.legend(bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0.0)
-
-plt.show()
-
-    # --- 4. Placeholder for Co-occurrence Network ---
     elif visualization_choice == "Co-occurrence Network (Coming Soon)":
         st.subheader("Co-occurrence Network")
         st.info("This feature will display a network graph of words that frequently occur together. (Work in Progress)")
 
-# =====================================================
-# If no input is given yet
-# =====================================================
+    elif visualization_choice == "Word Embeddings":
+        st.subheader("Word Embeddings t-SNE Visualization")
+        try:
+            # Read the two-column CSV
+            tsne_result_df = pd.read_csv("tsne.csv", header=None, names=['tsne_1', 'tsne_2'])
+            tsne_result_df['label'] = 0  # Add dummy labels since no labels exist
+            plot_tsne(tsne_result_df)
+        except FileNotFoundError:
+            st.error("tsne.csv not found. Make sure the file is in the same directory.")
+
+
 else:
     st.info("Enter some Hebrew words to begin analysis.")
