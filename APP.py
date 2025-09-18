@@ -8,6 +8,8 @@ import streamlit as st
 import matplotlib.pyplot as plt
 from collections import Counter
 import pandas as pd
+from sklearn.cluster import KMeans
+import plotly.express as px
 
 # =====================================================
 # App Title
@@ -112,14 +114,46 @@ if user_input:
 
     elif visualization_choice == "Word Embeddings":
         st.subheader("Word Embeddings t-SNE Visualization")
+
         try:
-            # Read the two-column CSV
-            tsne_result_df = pd.read_csv("tsne.csv", header=None, names=['tsne_1', 'tsne_2'])
-            tsne_result_df['label'] = 0  # Add dummy labels since no labels exist
-            plot_tsne(tsne_result_df)
+            
+            df = pd.read_csv("tsne.csv", header =None, names = ['tsne_1', 'tsne_2'])
+
+            df['label'] = 0
+
+                # --- Optional Clustering ---
+            kmeans = KMeans(n_clusters=10, random_state=42)
+            df['cluster'] = kmeans.fit_predict(df[['tsne']])
+
+            # Plot with Plotly (better interactivity than Matplotlib)
+            fig = px.scatter(
+                df,
+                x="tsne_1", y="tsne_2",
+                color="cluster",
+                hover_data=["word"]
+            )
+            st.plotly_chart(fig, use_container_width=True)
+                # Plot with Matplotlib (if needed)
+                # plot_tsne(df, label_col='label')
+
         except FileNotFoundError:
             st.error("tsne.csv not found. Make sure the file is in the same directory.")
 
-
 else:
     st.info("Enter some Hebrew words to begin analysis.")
+
+# Example of adding clustering to the t-SNE plot (if needed)
+# Assuming df is the DataFrame with t-SNE results
+kmeans = KMeans(n_clusters=10, random_state=42)
+df['cluster'] = kmeans.fit_predict(df[['tsne_1','tsne_2']])
+
+df = pd.read_csv('tsne.csv')
+
+
+fig = px.scatter(
+    df,
+    x="tsne_1", y="tsne_2",
+    color="cluster",
+    hover_data=["word"]
+)
+st.plotly_chart(fig, use_container_width=True)
