@@ -8,13 +8,16 @@
 # Users can see character frequency, word length distribution, interactive word embeddings with clustering, and a co-occurrence network.
 # The app includes filtering options for word length and first letter, as well as adjustable parameters for t-SNE and KMeans clustering.
 
-#TODO: Have the data visualtization appear automcatically when clicking on the word embeddings.
-#MAKE SURE THE DATA VISUALIZATION WORKS CORRECTLY AS THE CODE I HAVE DOES NOT WORK
+#TODO
 #Make my UI very friendly. Make it something more focused on the bible.
-#Start working on the paper. Introduction. Related work: Papers that present very similar solutions to what we are trying to work accomplish. Papers and tools that talk about logos
-#Aspects. Work in parallel.
 
 #Parameters: Number of similar words per level (numbers). Search Depth (Numbers)
+
+#Remove everything except co occurence networks and word embeddings. Remove filters
+#Move boxes over to the left side.
+
+#Send Dr. ALferez pictures of the app.
+
 
 # --- Imports ---
 import streamlit as st
@@ -37,38 +40,12 @@ import streamlit.components.v1 as components
 from network_tools import VocabNet
 from gensim.models.keyedvectors import KeyedVectors
 
-# =====================================================
-# Helper Functions
-# =====================================================
-@st.cache_data
-def process_words(words_list, min_len, max_len, first_letter):
-    """Process and filter words with caching for better performance"""
-    # Clean words
-    processed = [w.strip() for w in words_list if w.strip()]
-    
-    # Apply length filter
-    processed = [w for w in processed if min_len <= len(w) <= max_len]
-    
-    # Apply first letter filter
-    if first_letter.strip():
-        processed = [w for w in processed if w.startswith(first_letter.strip())]
-    
-    # Remove duplicates while preserving order
-    seen = set()
-    unique_words = []
-    for word in processed:
-        if word not in seen:
-            unique_words.append(word)
-            seen.add(word)
-    
-    return unique_words
-
 
 # =====================================================
 # App Configuration
 # =====================================================
 st.set_page_config(
-    page_title="Hebrew Word Visualizer",
+    page_title="Hebrew Word Explorer",
     page_icon="📊",
     layout="wide"
 )
@@ -76,13 +53,23 @@ st.set_page_config(
 # =====================================================
 # App Title and Description
 # =====================================================
-st.title("📊 Hebrew Word Visualization App")
+st.title("📖 Hebrew Word Explorer")
 st.markdown("""
-This app allows you to visualize words from biblical texts or any other text.
-Features include character frequency analysis, word length distribution, interactive word embeddings with clustering, and co-occurrence networks.
+Explore how Biblical Hebrew words connect, co-occur, and relate semantically through Scripture.
+    <style>
+    .block-container {
+        padding-top: 1rem;
+        padding-bottom: 1rem;
+        max-width: 1100px;
+        margin: auto;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True
+)
 
-**Instructions:** Paste Hebrew words separated by spaces in the text area below.
-""")
+# Instructions
+st.markdown("**Instructions:** Paste Hebrew words separated by spaces in the text area below.")
 
 # =====================================================
 # Sidebar Configuration
@@ -93,35 +80,34 @@ st.sidebar.header("🎛️ Visualization Options")
 visualization_choice = st.sidebar.radio(
     "Choose a visualization:",
     [
-        "Basic Stats",
-        "Character Frequency", 
-        "Word Length Distribution",
-        "Co-occurrence Network",
-        "Word Embeddings",
-        "Advanced Analytics"
-    ]
+        "Co-occurrence Network","Word Embeddings","Advanced Analytics"
+    ],
 )
 
-# Filters section
-st.sidebar.subheader("Filters")
-col1, col2 = st.sidebar.columns(2)
-with col1:
-    min_len = st.number_input("Min length", min_value=1, max_value=50, value=1)
-with col2:
-    max_len = st.number_input("Max length", min_value=1, max_value=50, value=20)
-
-first_letter = st.sidebar.text_input("Filter by first letter (optional)", max_chars=3)
-
-# Advanced options
-st.sidebar.subheader("Advanced Options")
 if visualization_choice == "Word Embeddings":
-    perplexity = st.sidebar.slider("t-SNE Perplexity", 1, 30, 15)  # Reduced max range
-    n_clusters = st.sidebar.slider("KMeans Clusters", 2, 15, 5)    # Reduced max range
-    learning_rate = st.sidebar.slider("t-SNE Learning Rate", 10, 1000, 200)
-    st.sidebar.info("Perplexity will be auto-adjusted based on your data size")
+    st.sidebar.markdown("### Word Network Settings")
+    st.sidebar.caption("Control how deeply and widely the Hebrew word network explores relationships.")
+    
+    num_similar = st.sidebar.number_input(
+        "Number of Similar Words per Level", 
+        min_value=1, max_value=100, value=10,
+        help="Controls how many related words are added per level."
+    )
+
+    search_depth = st.sidebar.number_input(
+        "Search Depth", 
+        min_value=1, max_value=10, value=2,
+        help="Controls how many levels deep the network searches."
+    )
 
 if visualization_choice == "🕸️ Co-occurrence Network":
-    min_edge_weight = st.sidebar.slider("Minimum edge weight", 1, 10, 1)
+    st.sidebar.markdown("### 🕸️ Network Settings")
+    min_edge_weight = st.sidebar.slider(
+        "Minimum Edge Weight (filter weak links)",
+        min_value=1, max_value=10, value=1
+    )
+else:
+    min_edge_weight = 1  # fallback default
 
 # =====================================================
 # User Input Section
@@ -139,52 +125,18 @@ else:
 # Allow uploading a text or csv file containing Hebrew words. Clicking a file in the uploader
 # will load its contents into the text area and trigger visualizations when the "Word Embeddings"
 # option is selected.
-uploaded_file = st.file_uploader("Upload a text file with Hebrew words (txt or csv)", type=['txt', 'csv'])
-if uploaded_file is not None:
-    try:
-        raw = uploaded_file.getvalue()
-        if isinstance(raw, bytes):
-            text = raw.decode('utf-8', errors='replace')
-        else:
-            text = str(raw)
-        # replace the user_input with uploaded contents so downstream code uses it
-        user_input = text
-        st.success(f"Loaded file: {uploaded_file.name}")
-    except Exception as e:
-        st.error(f"Could not read uploaded file: {e}")
 
 # Process the input into a cleaned list of words according to the sidebar filters
 raw_words = [] if not user_input else user_input.split()
-words = process_words(raw_words, min_len, max_len, first_letter)
+words = [w.strip() for w in raw_words if w.strip()]
 
 # Inform user when there are no words to analyze
 if not words:
-    st.info("No words available. Paste text, check your filters, or upload a file to begin.")
+    st.info("No words available. Type in words to begin.")
 
 # =====================================================
 # Visualization Implementation
 # =====================================================
-
-if visualization_choice == "Basic Stats":
-    st.subheader("Basic Word Analysis")
-    
-    # Metrics
-    col1, col2, col3, col4 = st.columns(4)
-    with col1:
-        st.metric("Total Words", len(words))
-    with col2:
-        st.metric("Unique Words", len(set(words)))
-    with col3:
-        st.metric("Avg Length", f"{np.mean([len(w) for w in words]):.1f}")
-    with col4:
-        st.metric("Total Characters", sum(len(w) for w in words))
-    
-    # Word list with frequencies
-    word_counts = Counter(words)
-    df_words = pd.DataFrame(word_counts.items(), columns=['Word', 'Frequency']).sort_values('Frequency', ascending=False)
-    
-    st.subheader("Word Frequency Table")
-    st.dataframe(df_words, use_container_width=True)
 
 elif visualization_choice == "Character Frequency":
     st.subheader("Character Frequency Analysis")
@@ -314,7 +266,7 @@ elif visualization_choice == "Co-occurrence Network":
 elif visualization_choice == "Word Embeddings":
         # from st_link_analysis import st_link_analysis
 
-    st.title("First shot at building a network!")
+    st.subheader("📚 Word Embeddings Network")
 
     # Create a directed graph
     dg = nx.DiGraph()
@@ -322,10 +274,11 @@ elif visualization_choice == "Word Embeddings":
     # Build a NetworkX graph
     # G = nx.erdos_renyi_graph(n=30, p=0.1, seed=42)
     G = VocabNet()
-    G.word_search(KeyedVectors.load("stored_nt_vectors.kv"), 460, None, 2)
+    G.word_search(KeyedVectors.load("stored_nt_vectors.kv"), num_similar, None, search_depth)
     G = G.dg
-    # net = Network(directed=True, height="500px", width="100%", bgcolor="#ffffff", font_color="black")
-    # net.from_nx(G)
+    net = Network(
+    height="800px", width="100%", directed=True,
+    bgcolor="#1a1a1a", font_color="#f1f1f1")
 
     data = nx.node_link_data(G)
 
@@ -354,6 +307,8 @@ elif visualization_choice == "Word Embeddings":
     net.show("sim_graph.html")
     HtmlFile = open("sim_graph.html", "r", encoding="utf-8")
     components.html(HtmlFile.read(), height=1000)
+
+    net.toggle_physics(True)
 
 elif visualization_choice == "Advanced Analytics":
     st.subheader("Advanced Analytics")
@@ -396,9 +351,3 @@ elif visualization_choice == "Advanced Analytics":
     except:
         st.error("Could not compute bigram analysis")
 
-
-# =====================================================
-# Footer
-# =====================================================
-st.markdown("---")
-st.markdown("*Hebrew Word Visualization App - Senior Capstone Project*")
