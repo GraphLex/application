@@ -1,5 +1,5 @@
 # =====================================================
-# Hebrew Word Visualization App (Streamlit) - IMPROVED
+# Hebrew Word Visualization App (Streamlit)
 # Senior Capstone Prototype
 # =====================================================
 
@@ -11,12 +11,9 @@
 #TODO
 #Make my UI very friendly. Make it something more focused on the bible.
 
-#Parameters: Number of similar words per level (numbers). Search Depth (Numbers)
-
-#Remove everything except co occurence networks and word embeddings. Remove filters
-#Move boxes over to the left side.
-
-#Send Dr. ALferez pictures of the app.
+#Connect the parameters on the side bar to the function call for word_search and
+#move the word input bar over to the left side. Accept a number like 405.
+#Maybe put comments in the paper (quick comments on thesis and if the thesis is relevant).
 
 
 # --- Imports ---
@@ -41,34 +38,66 @@ from network_tools import VocabNet
 from gensim.models.keyedvectors import KeyedVectors
 
 
+def safe_load_keyedvectors(path: str):
+    """Try to load keyed vectors from `path`. If the file doesn't exist or loading fails,
+    show a helpful Streamlit message and return None.
+    """
+    try:
+        return KeyedVectors.load(path)
+    except FileNotFoundError:
+        st.error(
+            f"Word vector file not found: '{path}'.\n\nPlace the file in the app folder or update the path.\n" \
+            "If you don't have the vectors, you can generate/load them separately or upload a compatible KeyedVectors file."
+        )
+        st.stop()
+        return None
+    except Exception as e:
+        st.error(f"Failed to load word vectors from '{path}': {e}")
+        st.stop()
+        return None
+
+
 # =====================================================
 # App Configuration
 # =====================================================
 st.set_page_config(
     page_title="Hebrew Word Explorer",
-    page_icon="📊",
+    page_icon="📊",  #Change this icon. Expand exegesis to other things besides Hebrew.
     layout="wide"
 )
+    
+# --- Layout tweak: move main content up on the page ---
+# Reduce the top padding for the main block container and tighten
+# heading margins so the title and intro appear higher on the page.
 
 # =====================================================
 # App Title and Description
 # =====================================================
-st.title("📖 Hebrew Word Explorer")
-st.markdown("""
-Explore how Biblical Hebrew words connect, co-occur, and relate semantically through Scripture.
+st.markdown(
+    """
     <style>
-    .block-container {
-        padding-top: 1rem;
-        padding-bottom: 1rem;
+    /* Stronger top-of-page layout: remove top padding and tighten margins */
+    .reportview-container .main .block-container,
+    .stApp .main .block-container,
+    section.main > div.block-container {
+        padding-top: 0rem !important;
+        padding-bottom: 0.5rem !important;
         max-width: 1100px;
-        margin: auto;
+        margin: 0 auto;
     }
+
+    /* Reduce header margins and ensure title sits at the very top */
+    h1 { margin-top: 0rem !important; margin-bottom: 0.25rem !important; font-size:48px; }
+    .top-intro { margin-top: 0 !important; color: #DDDDDD; font-size:16px; }
     </style>
+
+    <h1>📖 Hebrew Word Explorer</h1>
+    <p class="top-intro">Explore how Biblical Hebrew words connect, co-occur, and relate semantically through Scripture.</p>
     """,
-    unsafe_allow_html=True
+    unsafe_allow_html=True,
 )
 
-# Instructions
+# Instructions (kept as a separate Streamlit element for accessibility)
 st.markdown("**Instructions:** Paste Hebrew words separated by spaces in the text area below.")
 
 # =====================================================
@@ -100,39 +129,73 @@ if visualization_choice == "Word Embeddings":
         help="Controls how many levels deep the network searches."
     )
 
-if visualization_choice == "🕸️ Co-occurrence Network":
+# Ensure these variables exist even if the user selected a different visualization
+# so that later code (e.g. the Generate button handler) can reference them safely.
+if 'num_similar' not in globals():
+    num_similar = 10
+if 'search_depth' not in globals():
+    search_depth = 2
+
+user_word = st.sidebar.text_input("Enter the word or number")
+
+if st.sidebar.button("Generate Word Embedding"):
+    if not user_word:
+        st.warning("Please enter a word or number to generate the network.")
+    else:
+        st.info(f"Building network for '{user_word}' with {num_similar} similar words per level and depth of {search_depth}.")
+
+    if user_word.isdigit():
+        user_word = int(user_word)
+
+    model = safe_load_keyedvectors("stored_bhsa_vectors.kv")
+    # safe_load_keyedvectors will stop the Streamlit script and show an error if loading fails
+    if model is None:
+        # st.stop() already called inside safe_load_keyedvectors; this is just defensive
+        pass
+    else:
+        G = VocabNet()
+        G.word_search(vecs=model, word=user_word, num_steps=search_depth, words_per_level=num_similar)
+
+    nx_graph = G.dg
+
+    net = Network(height="800px", width="100%", directed=True,
+                      bgcolor="#000000", font_color="#ffffff")
+    
+    for n, attrs in nx_graph.nodes(data=True):
+        net.add_node(n, title=n, **attrs)
+        
+    for u, v, attrs in nx_graph.edges(data=True):
+        net.add_edge(u, v)
+
+    net.repulsion()
+    net.prep_notebook()
+    net.show("sim_graph.html")
+    HtmlFile = open("sim_graph.html", "r", encoding="utf-8")
+    components.html(HtmlFile.read(), height=800)
+
+if visualization_choice == "Co-occurrence Network":
     st.sidebar.markdown("### 🕸️ Network Settings")
     min_edge_weight = st.sidebar.slider(
         "Minimum Edge Weight (filter weak links)",
         min_value=1, max_value=10, value=1
     )
-else:
-    min_edge_weight = 1  # fallback default
+#else:
+    # fallback default when network settings are not shown
+    #min_edge_weight = 1
 
-# =====================================================
-# User Input Section
-# =====================================================
-st.subheader("Enter Hebrew Words")
 
-# Sample text option
-if st.checkbox("Use sample Hebrew text"):
-    sample_text = "בראשית ברא אלהים את השמים ואת הארץ והארץ היתה תהו ובהו וחשך על פני תהום ורוח אלהים מרחפת על פני המים"
-    user_input = st.text_area("Hebrew words (sample loaded):", value=sample_text, height=100)
-else:
-    user_input = st.text_area("Type or paste Hebrew words separated by spaces:", height=100, 
-                              placeholder="הקלד כאן מילים בעברית...")
+# ----------------------------
+# User input area (main panel)
+# ----------------------------
 
-# Allow uploading a text or csv file containing Hebrew words. Clicking a file in the uploader
-# will load its contents into the text area and trigger visualizations when the "Word Embeddings"
-# option is selected.
 
-# Process the input into a cleaned list of words according to the sidebar filters
-raw_words = [] if not user_input else user_input.split()
-words = [w.strip() for w in raw_words if w.strip()]
+# Split on whitespace and remove empty tokens
+#raw_words = [] if not user_input else [w.strip() for w in user_input.split() if w.strip()]
+#words = raw_words
 
 # Inform user when there are no words to analyze
-if not words:
-    st.info("No words available. Type in words to begin.")
+#if not words:
+    #st.info("No words available. Paste text or upload a file to begin.")
 
 # =====================================================
 # Visualization Implementation
@@ -273,42 +336,8 @@ elif visualization_choice == "Word Embeddings":
 
     # Build a NetworkX graph
     # G = nx.erdos_renyi_graph(n=30, p=0.1, seed=42)
-    G = VocabNet()
-    G.word_search(KeyedVectors.load("stored_nt_vectors.kv"), num_similar, None, search_depth)
-    G = G.dg
-    net = Network(
-    height="800px", width="100%", directed=True,
-    bgcolor="#1a1a1a", font_color="#f1f1f1")
-
-    data = nx.node_link_data(G)
-
-    # Display
-    # st_link_analysis(data)
-
-    # # Save and embed in Streamlit
-    # net.save_graph("directed_graph.html")
-    # HtmlFile = open("directed_graph.html", "r", encoding="utf-8")
-    # components.html(HtmlFile.read(), height=550)
-
-    print('netexp')
-    net = Network(height="1000px", width="100%", directed=True, bgcolor="#000000", font_color="white")
-
-    # Add nodes & edges
-    for n, attrs in G.nodes(data=True):
-        net.add_node(n, title=n, **attrs)
-    for u, v, attrs in G.edges(data=True):
-        net.add_edge(u, v, arrows="to", **attrs)
-
-
-    # # Prep & render
-    net.repulsion()
-    net.prep_notebook()
-    net.show_buttons(filter_=["layout", "interaction", "nodes", "edges"])
-    net.show("sim_graph.html")
-    HtmlFile = open("sim_graph.html", "r", encoding="utf-8")
-    components.html(HtmlFile.read(), height=1000)
-
-    net.toggle_physics(True)
+    #Fix the function call
+    
 
 elif visualization_choice == "Advanced Analytics":
     st.subheader("Advanced Analytics")
