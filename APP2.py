@@ -21,17 +21,12 @@ import streamlit as st
 from collections import Counter
 import pandas as pd
 from sklearn.feature_extraction.text import CountVectorizer
-from sklearn.manifold import TSNE
-from sklearn.cluster import KMeans
 import plotly.express as px
 import plotly.graph_objects as go
 import networkx as nx
-import numpy as np
 from sklearn.metrics.pairwise import cosine_similarity
 import warnings
 warnings.filterwarnings('ignore')
-import io
-import seaborn as sns
 from pyvis.network import Network
 import streamlit.components.v1 as components
 from network_tools import VocabNet
