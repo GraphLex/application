@@ -8,14 +8,6 @@
 # Users can see character frequency, word length distribution, interactive word embeddings with clustering, and a co-occurrence network.
 # The app includes filtering options for word length and first letter, as well as adjustable parameters for t-SNE and KMeans clustering.
 
-#TODO
-#Make my UI very friendly. Make it something more focused on the bible.
-
-#Connect the parameters on the side bar to the function call for word_search and
-#move the word input bar over to the left side. Accept a number like 405.
-#Maybe put comments in the paper (quick comments on thesis and if the thesis is relevant).
-
-
 # --- Imports ---
 import streamlit as st
 from collections import Counter
@@ -31,6 +23,81 @@ from pyvis.network import Network
 import streamlit.components.v1 as components
 from network_tools import VocabNet
 from gensim.models.keyedvectors import KeyedVectors
+
+
+# =====================================================
+# Bible Book Structure Dictionary
+# =====================================================
+BIBLE_BOOKS = {
+    # Old Testament
+    "Genesis": "OT",
+    "Exodus": "OT",
+    "Leviticus": "OT",
+    "Numbers": "OT",
+    "Deuteronomy": "OT",
+    "Joshua": "OT",
+    "Judges": "OT",
+    "Ruth": "OT",
+    "1 Samuel": "OT",
+    "2 Samuel": "OT",
+    "1 Kings": "OT",
+    "2 Kings": "OT",
+    "1 Chronicles": "OT",
+    "2 Chronicles": "OT",
+    "Ezra": "OT",
+    "Nehemiah": "OT",
+    "Esther": "OT",
+    "Job": "OT",
+    "Psalms": "OT",
+    "Proverbs": "OT",
+    "Ecclesiastes": "OT",
+    "Song of Solomon": "OT",
+    "Isaiah": "OT",
+    "Jeremiah": "OT",
+    "Lamentations": "OT",
+    "Ezekiel": "OT",
+    "Daniel": "OT",
+    "Hosea": "OT",
+    "Joel": "OT",
+    "Amos": "OT",
+    "Obadiah": "OT",
+    "Jonah": "OT",
+    "Micah": "OT",
+    "Nahum": "OT",
+    "Habakkuk": "OT",
+    "Zephaniah": "OT",
+    "Haggai": "OT",
+    "Zechariah": "OT",
+    "Malachi": "OT",
+    # New Testament
+    "Matthew": "NT",
+    "Mark": "NT",
+    "Luke": "NT",
+    "John": "NT",
+    "Acts": "NT",
+    "Romans": "NT",
+    "1 Corinthians": "NT",
+    "2 Corinthians": "NT",
+    "Galatians": "NT",
+    "Ephesians": "NT",
+    "Philippians": "NT",
+    "Colossians": "NT",
+    "1 Thessalonians": "NT",
+    "2 Thessalonians": "NT",
+    "1 Timothy": "NT",
+    "2 Timothy": "NT",
+    "Titus": "NT",
+    "Philemon": "NT",
+    "Hebrews": "NT",
+    "James": "NT",
+    "1 Peter": "NT",
+    "2 Peter": "NT",
+    "1 John": "NT",
+    "2 John": "NT",
+    "3 John": "NT",
+    "Jude": "NT",
+    "Revelation": "NT"
+}
 
 
 def safe_load_keyedvectors(path: str):
@@ -52,18 +119,23 @@ def safe_load_keyedvectors(path: str):
         return None
 
 
+def display_selected_books():
+    """Display the currently selected Bible books"""
+    if 'selected_books' in st.session_state and st.session_state['selected_books']:
+        books = st.session_state['selected_books']
+        st.info(f"📖 Selected Books: **{', '.join(books)}**")
+        return books
+    return None
+
+
 # =====================================================
 # App Configuration
 # =====================================================
 st.set_page_config(
     page_title="Hebrew Word Explorer",
-    page_icon="📊",  #Change this icon. Expand exegesis to other things besides Hebrew.
+    page_icon="📊",
     layout="wide"
 )
-    
-# --- Layout tweak: move main content up on the page ---
-# Reduce the top padding for the main block container and tighten
-# heading margins so the title and intro appear higher on the page.
 
 # =====================================================
 # App Title and Description
@@ -92,22 +164,57 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-# Instructions (kept as a separate Streamlit element for accessibility)
-st.markdown("**Instructions:** Paste Hebrew words separated by spaces in the text area below.")
+# Instructions
+st.markdown("**Instructions:** Select Bible books from the sidebar to train the Word2Vec model and explore Hebrew word relationships.")
+
+# Display currently selected books
+current_books = display_selected_books()
 
 # =====================================================
 # Sidebar Configuration
 # =====================================================
 st.sidebar.header("🎛️ Visualization Options")
 
+# =====================================================
+# Bible Book Selector (Multi-select)
+# =====================================================
+st.sidebar.markdown("### 📖 Bible Book Selection")
+st.sidebar.caption("Select one or more books to analyze")
+
+selected_books = st.sidebar.multiselect(
+    "Choose Bible Books",
+    options=list(BIBLE_BOOKS.keys()),
+    default=["Genesis"],
+    help="Select multiple books to train the Word2Vec model on their combined text"
+)
+
+# Load books button
+if st.sidebar.button("📥 Load Selected Books", type="primary"):
+    if selected_books:
+        st.session_state['selected_books'] = selected_books
+        st.sidebar.success(f"✅ Loaded {len(selected_books)} book(s)")
+        # Here you would trigger your backend Word2Vec retraining
+        # For example: retrain_word2vec(selected_books)
+    else:
+        st.sidebar.warning("⚠️ Please select at least one book")
+
+st.sidebar.markdown("---")
+
 # Main visualization choice
 visualization_choice = st.sidebar.radio(
     "Choose a visualization:",
     [
-        "Co-occurrence Network","Word Embeddings","Advanced Analytics"
+        "Co-occurrence Network",
+        "Word Embeddings",
+        "Character Frequency",
+        "Word Length Distribution",
+        "Advanced Analytics"
     ],
 )
 
+# =====================================================
+# Word Embeddings Sidebar Options
+# =====================================================
 if visualization_choice == "Word Embeddings":
     st.sidebar.markdown("### Word Network Settings")
     st.sidebar.caption("Control how deeply and widely the Hebrew word network explores relationships.")
@@ -124,79 +231,82 @@ if visualization_choice == "Word Embeddings":
         help="Controls how many levels deep the network searches."
     )
 
-# Ensure these variables exist even if the user selected a different visualization
-# so that later code (e.g. the Generate button handler) can reference them safely.
-if 'num_similar' not in globals():
-    num_similar = 10
-if 'search_depth' not in globals():
-    search_depth = 2
+    user_word = st.sidebar.text_input("Enter the word or number")
 
-user_word = st.sidebar.text_input("Enter the word or number")
+    if st.sidebar.button("Generate Word Embedding"):
+        if not user_word:
+            st.warning("Please enter a word or number to generate the network.")
+        else:
+            # Check if books are selected
+            if 'selected_books' not in st.session_state or not st.session_state['selected_books']:
+                st.warning("⚠️ Please select and load Bible books first!")
+            else:
+                st.info(f"Building network for '{user_word}' with {num_similar} similar words per level and depth of {search_depth}.")
+                st.info(f"Using books: {', '.join(st.session_state['selected_books'])}")
 
-if st.sidebar.button("Generate Word Embedding"):
-    if not user_word:
-        st.warning("Please enter a word or number to generate the network.")
-    else:
-        st.info(f"Building network for '{user_word}' with {num_similar} similar words per level and depth of {search_depth}.")
+                if user_word.isdigit():
+                    user_word = int(user_word)
 
-    if user_word.isdigit():
-        user_word = int(user_word)
+                # Load the Word2Vec model (you'll need to modify this to load based on selected books)
+                # For example: model_path = f"vectors_{'_'.join(st.session_state['selected_books'])}.kv"
+                model = safe_load_keyedvectors("stored_bhsa_vectors.kv")
+                
+                if model is not None:
+                    G = VocabNet()
+                    G.word_search(vecs=model, word=user_word, num_steps=search_depth, words_per_level=num_similar)
 
-    model = safe_load_keyedvectors("stored_bhsa_vectors.kv")
-    # safe_load_keyedvectors will stop the Streamlit script and show an error if loading fails
-    if model is None:
-        # st.stop() already called inside safe_load_keyedvectors; this is just defensive
-        pass
-    else:
-        G = VocabNet()
-        G.word_search(vecs=model, word=user_word, num_steps=search_depth, words_per_level=num_similar)
+                    nx_graph = G.dg
 
-    nx_graph = G.dg
+                    net = Network(height="800px", width="100%", directed=True,
+                                bgcolor="#000000", font_color="#ffffff")
+                    
+                    for n, attrs in nx_graph.nodes(data=True):
+                        net.add_node(n, title=n, **attrs)
+                        
+                    for u, v, attrs in nx_graph.edges(data=True):
+                        net.add_edge(u, v)
 
-    net = Network(height="800px", width="100%", directed=True,
-                      bgcolor="#000000", font_color="#ffffff")
-    
-    for n, attrs in nx_graph.nodes(data=True):
-        net.add_node(n, title=n, **attrs)
-        
-    for u, v, attrs in nx_graph.edges(data=True):
-        net.add_edge(u, v)
+                    net.repulsion()
+                    net.prep_notebook()
+                    net.show("sim_graph.html")
+                    HtmlFile = open("sim_graph.html", "r", encoding="utf-8")
+                    components.html(HtmlFile.read(), height=800)
 
-    net.repulsion()
-    net.prep_notebook()
-    net.show("sim_graph.html")
-    HtmlFile = open("sim_graph.html", "r", encoding="utf-8")
-    components.html(HtmlFile.read(), height=800)
-
+# =====================================================
+# Co-occurrence Network Sidebar Options
+# =====================================================
 if visualization_choice == "Co-occurrence Network":
     st.sidebar.markdown("### 🕸️ Network Settings")
     min_edge_weight = st.sidebar.slider(
         "Minimum Edge Weight (filter weak links)",
         min_value=1, max_value=10, value=1
     )
-#else:
-    # fallback default when network settings are not shown
-    #min_edge_weight = 1
+else:
+    min_edge_weight = 1
 
-
-# ----------------------------
-# User input area (main panel)
-# ----------------------------
-
+# =====================================================
+# User Input Area (Main Panel)
+# =====================================================
+user_input = st.text_area(
+    "Hebrew Text Input",
+    height=150,
+    placeholder="Paste Hebrew words here (space-separated)...",
+    label_visibility="collapsed"
+)
 
 # Split on whitespace and remove empty tokens
-#raw_words = [] if not user_input else [w.strip() for w in user_input.split() if w.strip()]
-#words = raw_words
+raw_words = [] if not user_input else [w.strip() for w in user_input.split() if w.strip()]
+words = raw_words
 
 # Inform user when there are no words to analyze
-#if not words:
-    #st.info("No words available. Paste text or upload a file to begin.")
+if not words and visualization_choice not in ["Word Embeddings"]:
+    st.info("No words available. Paste text to begin analysis.")
 
 # =====================================================
 # Visualization Implementation
 # =====================================================
 
-elif visualization_choice == "Character Frequency":
+if visualization_choice == "Character Frequency" and words:
     st.subheader("Character Frequency Analysis")
     
     char_freq = Counter("".join(words))
@@ -214,10 +324,6 @@ elif visualization_choice == "Character Frequency":
     
     with col1:
         st.dataframe(df_freq, use_container_width=True)
-
-    if not user_input:
-        sample_text = "apple orange banana"
-        user_input = sample_text
     
     with col2:
         fig = px.bar(df_freq.head(20), x='Character', y='Count', 
@@ -226,7 +332,7 @@ elif visualization_choice == "Character Frequency":
         fig.update_layout(xaxis_title="Hebrew Characters", yaxis_title="Frequency")
         st.plotly_chart(fig, use_container_width=True)
 
-elif visualization_choice == "Word Length Distribution":
+elif visualization_choice == "Word Length Distribution" and words:
     st.subheader("Word Length Distribution")
     
     word_lengths = [len(w) for w in words]
@@ -247,7 +353,7 @@ elif visualization_choice == "Word Length Distribution":
     with col3:
         st.metric("Most Common Length", Counter(word_lengths).most_common(1)[0][0])
 
-elif visualization_choice == "Co-occurrence Network":
+elif visualization_choice == "Co-occurrence Network" and words:
     st.subheader("Co-occurrence Network")
     st.info("Network shows word pairs that appear consecutively.")
     
@@ -322,19 +428,15 @@ elif visualization_choice == "Co-occurrence Network":
         st.dataframe(df_cooc, use_container_width=True)
 
 elif visualization_choice == "Word Embeddings":
-        # from st_link_analysis import st_link_analysis
-
     st.subheader("📚 Word Embeddings Network")
-
-    # Create a directed graph
-    dg = nx.DiGraph()
-
-    # Build a NetworkX graph
-    # G = nx.erdos_renyi_graph(n=30, p=0.1, seed=42)
-    #Fix the function call
     
+    if 'selected_books' not in st.session_state or not st.session_state['selected_books']:
+        st.warning("⚠️ Please select and load Bible books from the sidebar first!")
+        st.info("The Word2Vec model will be trained on the selected books to generate word embeddings.")
+    else:
+        st.info("👈 Enter a word or number in the sidebar and click 'Generate Word Embedding' to visualize the network.")
 
-elif visualization_choice == "Advanced Analytics":
+elif visualization_choice == "Advanced Analytics" and words:
     st.subheader("Advanced Analytics")
     
     # Word similarity matrix
@@ -375,3 +477,12 @@ elif visualization_choice == "Advanced Analytics":
     except:
         st.error("Could not compute bigram analysis")
 
+# =====================================================
+# Footer Information
+# =====================================================
+st.sidebar.markdown("---")
+st.sidebar.markdown("### 📚 About")
+st.sidebar.info(
+    "This tool analyzes Hebrew words from Biblical texts using Word2Vec embeddings "
+    "and various text analysis techniques. Select books to train a custom model on specific Biblical content."
+)
