@@ -13,13 +13,7 @@
 
 # --- Imports ---
 import streamlit as st
-from collections import Counter
-import pandas as pd
-from sklearn.feature_extraction.text import CountVectorizer
-import plotly.express as px
-import plotly.graph_objects as go
 import networkx as nx
-from sklearn.metrics.pairwise import cosine_similarity
 import warnings
 warnings.filterwarnings('ignore')
 from pyvis.network import Network
