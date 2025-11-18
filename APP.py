@@ -1,3 +1,4 @@
+
 # =====================================================
 # Hebrew Word Visualization App (Streamlit)
 # Senior Capstone Prototype
@@ -188,6 +189,8 @@ st.sidebar.info(
 # =====================================================
 st.subheader("📚 Word Embeddings Network")
 
+visualization_choice = "Word Embeddings"
+
 if 'selected_books' not in st.session_state or not st.session_state['selected_books']:
     st.warning("⚠️ Please select and load Bible books from the sidebar first!")
     st.info("The Word2Vec model will be trained on the selected books to generate word embeddings.")
@@ -249,32 +252,65 @@ def generate_network(word, depth, similar_count, books):
         st.session_state['network_generated'] = True
         st.session_state['network_html'] = open("sim_graph.html", "r", encoding="utf-8").read()
 
+if st.sidebar.button("Generate Word Embedding"):
+    # Clear previous network when generating a new one
+    if 'network_generated' in st.session_state:
+        del st.session_state['network_generated']
+        del st.session_state['network_html']
+    
+    if not user_word:
+        st.warning("Please enter a word or number to generate the network.")
+    elif 'selected_books' not in st.session_state or not st.session_state['selected_books']:
+        st.warning("⚠️ Please select and load Bible books first!")
+    else:
+        st.info(f"Building network for '{user_word}' with {num_similar} similar words per level and depth of {search_depth}.")
+        st.info(f"Using books: {', '.join(st.session_state['selected_books'])}")
+        
+        with st.spinner("Generating network visualization..."):
+            generate_network(user_word, search_depth, num_similar, st.session_state['selected_books'])
+        
+        st.success("✅ Network generated successfully!")
+
+        if 'network_generated' in st.session_state and st.session_state['network_generated']:
+            components.html(st.session_state['network_html'], height=800)
+
 
 # =====================================================
-# Bible Book Selector (Multi-select)
+# Bible Book Selector (Multi-select) with Presets
 # =====================================================
 st.sidebar.markdown("### 📖 Bible Book Selection")
 st.sidebar.caption("Select one or more books to analyze")
 
+# Initialize multiselect value if not set
+if "multiselect_value" not in st.session_state:
+    st.session_state["multiselect_value"] = ["Genesis"]
+
+# --- Preset Buttons ---
+if st.sidebar.button("Whole OT"):
+    ot_books = [book for book, sec in BIBLE_BOOKS.items() if sec == "OT"]
+    st.session_state["selected_books"] = ot_books
+    st.session_state["multiselect_value"] = ot_books
+
+if st.sidebar.button("Whole NT"):
+    nt_books = [book for book, sec in BIBLE_BOOKS.items() if sec == "NT"]
+    st.session_state["selected_books"] = nt_books
+    st.session_state["multiselect_value"] = nt_books
+
+# --- Multiselect (uses session state value) ---
 selected_books = st.sidebar.multiselect(
     "Choose Bible Books",
     options=list(BIBLE_BOOKS.keys()),
-    default=["Genesis"],
-    help="Select multiple books to train the Word2Vec model on their combined text"
+    default=st.session_state["multiselect_value"],
+    help="Select multiple books to train the Word2Vec model",
 )
 
-# Load books button
+# Keep session state in sync
+st.session_state["selected_books"] = selected_books
+st.session_state["multiselect_value"] = selected_books
+
+# --- Load Books Button ---
 if st.sidebar.button("📥 Load Selected Books", type="primary"):
     if selected_books:
-        st.session_state['selected_books'] = selected_books
         st.sidebar.success(f"✅ Loaded {len(selected_books)} book(s)")
-        # Here you would trigger your backend Word2Vec retraining
-        # For example: retrain_word2vec(selected_books)
     else:
         st.sidebar.warning("⚠️ Please select at least one book")
-
-st.sidebar.markdown("---")
-
-# Set visualization to Word Embeddings only
-visualization_choice = "Word Embeddings"
-
