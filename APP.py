@@ -11,6 +11,8 @@
 #Take away the text box in the beginning when opening the page. Take out the whole radio menu and just leave word 
 #Implement function from picture Rhys showed me
 
+#DONE: Removed Daniel and Ezra. This isnt ready for aramaic
+
 # --- Imports ---
 import streamlit as st
 import networkx as nx
@@ -41,7 +43,6 @@ BIBLE_BOOKS = {
     "2 Kings": "OT",
     "1 Chronicles": "OT",
     "2 Chronicles": "OT",
-    "Ezra": "OT",
     "Nehemiah": "OT",
     "Esther": "OT",
     "Job": "OT",
@@ -53,7 +54,6 @@ BIBLE_BOOKS = {
     "Jeremiah": "OT",
     "Lamentations": "OT",
     "Ezekiel": "OT",
-    "Daniel": "OT",
     "Hosea": "OT",
     "Joel": "OT",
     "Amos": "OT",
@@ -173,39 +173,37 @@ current_books = display_selected_books()
 # =====================================================
 st.sidebar.header("🎛️ Visualization Options")
 
-# =====================================================
-# Bible Book Selector (Multi-select)
-# =====================================================
-st.sidebar.markdown("### 📖 Bible Book Selection")
-st.sidebar.caption("Select one or more books to analyze")
-
-selected_books = st.sidebar.multiselect(
-    "Choose Bible Books",
-    options=list(BIBLE_BOOKS.keys()),
-    default=["Genesis"],
-    help="Select multiple books to train the Word2Vec model on their combined text"
+#------------------------------------------------------
+#About section
+#------------------------------------------------------
+st.sidebar.markdown("---")
+st.sidebar.markdown("### 📚 About")
+st.sidebar.info(
+    "This tool analyzes Hebrew words from Biblical texts using Word2Vec embeddings "
+    "and various text analysis techniques. Select books to train a custom model on specific Biblical content."
 )
 
-# Load books button
-if st.sidebar.button("📥 Load Selected Books", type="primary"):
-    if selected_books:
-        st.session_state['selected_books'] = selected_books
-        st.sidebar.success(f"✅ Loaded {len(selected_books)} book(s)")
-        # Here you would trigger your backend Word2Vec retraining
-        # For example: retrain_word2vec(selected_books)
-    else:
-        st.sidebar.warning("⚠️ Please select at least one book")
+# =====================================================
+# Word Embeddings Display
+# =====================================================
+st.subheader("📚 Word Embeddings Network")
 
-st.sidebar.markdown("---")
-
-# Set visualization to Word Embeddings only
-visualization_choice = "Word Embeddings"
+if 'selected_books' not in st.session_state or not st.session_state['selected_books']:
+    st.warning("⚠️ Please select and load Bible books from the sidebar first!")
+    st.info("The Word2Vec model will be trained on the selected books to generate word embeddings.")
+elif 'network_generated' in st.session_state and st.session_state['network_generated']:
+    # Display the network without regenerating
+    components.html(st.session_state['network_html'], height=800)
+else:
+    st.info("👈 Enter a word or number in the sidebar and click 'Generate Word Embedding' to visualize the network.")
 
 # =====================================================
 # Word Embeddings Sidebar Options
 # =====================================================
 st.sidebar.markdown("### Word Network Settings")
 st.sidebar.caption("Control how deeply and widely the Hebrew word network explores relationships.")
+
+user_word = st.sidebar.text_input("Enter the word or number")
 
 num_similar = st.sidebar.number_input(
     "Number of Similar Words per Level", 
@@ -218,9 +216,6 @@ search_depth = st.sidebar.number_input(
     min_value=1, max_value=10, value=2,
     help="Controls how many levels deep the network searches."
 )
-
-user_word = st.sidebar.text_input("Enter the word or number")
-
 
 def generate_network(word, depth, similar_count, books):
     """Generate word embedding network without page reload"""
@@ -255,46 +250,31 @@ def generate_network(word, depth, similar_count, books):
         st.session_state['network_html'] = open("sim_graph.html", "r", encoding="utf-8").read()
 
 
-if st.sidebar.button("Generate Word Embedding"):
-    # Clear previous network when generating a new one
-    if 'network_generated' in st.session_state:
-        del st.session_state['network_generated']
-        del st.session_state['network_html']
-    
-    if not user_word:
-        st.warning("Please enter a word or number to generate the network.")
-    elif 'selected_books' not in st.session_state or not st.session_state['selected_books']:
-        st.warning("⚠️ Please select and load Bible books first!")
-    else:
-        st.info(f"Building network for '{user_word}' with {num_similar} similar words per level and depth of {search_depth}.")
-        st.info(f"Using books: {', '.join(st.session_state['selected_books'])}")
-        
-        with st.spinner("Generating network visualization..."):
-            generate_network(user_word, search_depth, num_similar, st.session_state['selected_books'])
-        
-        st.success("✅ Network generated successfully!")
-
 # =====================================================
-# Word Embeddings Display
+# Bible Book Selector (Multi-select)
 # =====================================================
-st.subheader("📚 Word Embeddings Network")
+st.sidebar.markdown("### 📖 Bible Book Selection")
+st.sidebar.caption("Select one or more books to analyze")
 
-if 'selected_books' not in st.session_state or not st.session_state['selected_books']:
-    st.warning("⚠️ Please select and load Bible books from the sidebar first!")
-    st.info("The Word2Vec model will be trained on the selected books to generate word embeddings.")
-elif 'network_generated' in st.session_state and st.session_state['network_generated']:
-    # Display the network without regenerating
-    components.html(st.session_state['network_html'], height=800)
-else:
-    st.info("👈 Enter a word or number in the sidebar and click 'Generate Word Embedding' to visualize the network.")
-
-
-# =====================================================
-# Footer Information
-# =====================================================
-st.sidebar.markdown("---")
-st.sidebar.markdown("### 📚 About")
-st.sidebar.info(
-    "This tool analyzes Hebrew words from Biblical texts using Word2Vec embeddings "
-    "and various text analysis techniques. Select books to train a custom model on specific Biblical content."
+selected_books = st.sidebar.multiselect(
+    "Choose Bible Books",
+    options=list(BIBLE_BOOKS.keys()),
+    default=["Genesis"],
+    help="Select multiple books to train the Word2Vec model on their combined text"
 )
+
+# Load books button
+if st.sidebar.button("📥 Load Selected Books", type="primary"):
+    if selected_books:
+        st.session_state['selected_books'] = selected_books
+        st.sidebar.success(f"✅ Loaded {len(selected_books)} book(s)")
+        # Here you would trigger your backend Word2Vec retraining
+        # For example: retrain_word2vec(selected_books)
+    else:
+        st.sidebar.warning("⚠️ Please select at least one book")
+
+st.sidebar.markdown("---")
+
+# Set visualization to Word Embeddings only
+visualization_choice = "Word Embeddings"
+
