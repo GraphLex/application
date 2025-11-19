@@ -12,7 +12,11 @@
 #Take away the text box in the beginning when opening the page. Take out the whole radio menu and just leave word 
 #Implement function from picture Rhys showed me
 
-#DONE: Removed Daniel and Ezra. This isnt ready for aramaic
+#TO DO for next time
+# : Go deeper into a particular word. Having a text box for specific word. Have a specific word where you can type it in.
+#Reimplement text box where you type in a specific hebrew word.
+#Paper: Target audience for the Paper. Next version of paper should have theoretical framework. 
+#Explaining the concepts. Have a concept map. Network or graph or semantical analysis. 2-3 concepts explained.
 
 # --- Imports ---
 import streamlit as st
