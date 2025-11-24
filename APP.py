@@ -210,7 +210,43 @@ else:
 st.sidebar.markdown("### Word Network Settings")
 st.sidebar.caption("Control how deeply and widely the Hebrew word network explores relationships.")
 
-user_word = st.sidebar.text_input("Enter the word or number")
+
+ # Input type selection (Word or Strong's Number)
+input_type = st.sidebar.radio(
+    "Input Type",
+    options=["Word", "Strong's Number"],
+    horizontal=True
+)
+
+if input_type == "Word":
+    user_word = st.sidebar.text_input("Enter Hebrew word")
+else:
+    # Strong's Number input with H/G prefix buttons
+    col1, col2, col3 = st.sidebar.columns([1, 1, 3])
+    
+    with col1:
+        if st.button("H", key="hebrew_btn", help="Hebrew Strong's"):
+            st.session_state["strongs_prefix"] = "H"
+    
+    with col2:
+        if st.button("G", key="greek_btn", help="Greek Strong's"):
+            st.session_state["strongs_prefix"] = "G"
+    
+    # Initialize prefix if not set
+    if "strongs_prefix" not in st.session_state:
+        st.session_state["strongs_prefix"] = "H"
+    
+    with col3:
+        strongs_number = st.sidebar.text_input(
+            f"Strong's Number ({st.session_state['strongs_prefix']})",
+            placeholder="e.g., 430"
+        )
+    
+    # Combine prefix + number for the final word
+    if strongs_number:
+        user_word = f"{st.session_state['strongs_prefix']}{strongs_number}"
+    else:
+        user_word = ""
 
 num_similar = st.sidebar.number_input(
     "Number of Similar Words per Level", 
@@ -227,8 +263,18 @@ search_depth = st.sidebar.number_input(
 def generate_network(word, depth, similar_count, books):
     """Generate word embedding network without page reload"""
     
+    # Handle different input types
+    # Check if it's a plain number (old behavior)
     if word.isdigit():
         word = int(word)
+    # Check if it's a Strong's number (H#### or G####)
+    elif word.startswith(('H', 'G')) and len(word) > 1 and word[1:].isdigit():
+        # Keep as string (e.g., "H430", "G2316")
+        # VocabNet will handle the Strong's number format
+        pass
+    # Otherwise it's a Hebrew/Greek word - keep as string
+    else:
+        pass
     
     # Load the Word2Vec model
     model = safe_load_keyedvectors("stored_bhsa_vectors.kv")
@@ -290,6 +336,12 @@ if "multiselect_value" not in st.session_state:
     st.session_state["multiselect_value"] = ["Genesis"]
 
 # --- Preset Buttons ---
+        #All books
+if st.sidebar.button('Whole Bible'):
+    all_books = list(BIBLE_BOOKS.keys())
+    st.session_state["selected_books"] = all_books
+    st.session_state['multiselect_value'] = all_books
+
 if st.sidebar.button("Whole OT"):
     ot_books = [book for book, sec in BIBLE_BOOKS.items() if sec == "OT"]
     st.session_state["selected_books"] = ot_books
