@@ -262,6 +262,8 @@ search_depth = st.sidebar.number_input(
 
 def generate_network(word, depth, similar_count, books):
     """Generate word embedding network without page reload"""
+
+     st.cache_data.clear()
     
     # Handle different input types
     # Check if it's a plain number (old behavior)
@@ -278,14 +280,12 @@ def generate_network(word, depth, similar_count, books):
     
     if st.button("Clear cache"):
     st.cache_data.clear()
-
-    # search_word = 'G2588'
-    search_word = 'H3045'
+    
     NB.generate_word_search_network(Algorithm.W2V,
-                                   search_word,
-                                   num_steps=4,
-                                   words_per_level=4,
-                                   books_to_include=[], retrain=True)
+                                   word,
+                                   num_steps=depth,
+                                   words_per_level=similar_count,
+                                   books_to_include=[])
     vnet = NB.get_network()
     # data = nx.node_link_data(vnet)
     net = Network(height="1000px", width="100%", directed=True, bgcolor="#000000", font_color="white")
