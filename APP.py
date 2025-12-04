@@ -279,57 +279,57 @@ def generate_network(word, depth, similar_count, books):
     if st.button("Clear cache"):
     st.cache_data.clear()
 
-# search_word = 'G2588'
-search_word = 'H3045'
-NB.generate_word_search_network(Algorithm.W2V,
-                               search_word,
-                               num_steps=4,
-                               words_per_level=4,
-                               books_to_include=[], retrain=True)
-vnet = NB.get_network()
-# data = nx.node_link_data(vnet)
-net = Network(height="1000px", width="100%", directed=True, bgcolor="#000000", font_color="white")
-
-# Add nodes & edges
-for n, attrs in vnet.nodes(data=True):
-    if n == NB.process_strongs_input(search_word[0], int(search_word[1:])):
-        net.add_node(n, color='#ffff00', title=n, **attrs)
-    else:
-        net.add_node(n, title=n, **attrs)
+    # search_word = 'G2588'
+    search_word = 'H3045'
+    NB.generate_word_search_network(Algorithm.W2V,
+                                   search_word,
+                                   num_steps=4,
+                                   words_per_level=4,
+                                   books_to_include=[], retrain=True)
+    vnet = NB.get_network()
+    # data = nx.node_link_data(vnet)
+    net = Network(height="1000px", width="100%", directed=True, bgcolor="#000000", font_color="white")
     
-for u, v, attrs in vnet.edges(data=True):
-    print(attrs['weight'])
-    net.add_edge(u, v, weight=(attrs['weight']), title=attrs['weight'], label=attrs['weight'], arrows="to")
-
-# # Prep & render
-net.repulsion()
-net.show_buttons()
-# net.show_buttons(filter_=["layout", "interaction", "nodes", "edges"])
-# net.show("sim_graph.html")
-# HtmlFile = open("sim_graph.html", "r", encoding="utf-8")
-html = net.generate_html()
-components.html(html, height=750)
-if st.sidebar.button("Generate Word Embedding"):
-    # Clear previous network when generating a new one
-    if 'network_generated' in st.session_state:
-        del st.session_state['network_generated']
-        del st.session_state['network_html']
+    # Add nodes & edges
+    for n, attrs in vnet.nodes(data=True):
+        if n == NB.process_strongs_input(search_word[0], int(search_word[1:])):
+            net.add_node(n, color='#ffff00', title=n, **attrs)
+        else:
+            net.add_node(n, title=n, **attrs)
+        
+    for u, v, attrs in vnet.edges(data=True):
+        print(attrs['weight'])
+        net.add_edge(u, v, weight=(attrs['weight']), title=attrs['weight'], label=attrs['weight'], arrows="to")
     
-    if not user_word:
-        st.warning("Please enter a word or number to generate the network.")
-    elif 'selected_books' not in st.session_state or not st.session_state['selected_books']:
-        st.warning("⚠️ Please select and load Bible books first!")
-    else:
-        st.info(f"Building network for '{user_word}' with {num_similar} similar words per level and depth of {search_depth}.")
-        st.info(f"Using books: {', '.join(st.session_state['selected_books'])}")
+    # # Prep & render
+    net.repulsion()
+    net.show_buttons()
+    # net.show_buttons(filter_=["layout", "interaction", "nodes", "edges"])
+    # net.show("sim_graph.html")
+    # HtmlFile = open("sim_graph.html", "r", encoding="utf-8")
+    html = net.generate_html()
+    components.html(html, height=750)
+    if st.sidebar.button("Generate Word Embedding"):
+        # Clear previous network when generating a new one
+        if 'network_generated' in st.session_state:
+            del st.session_state['network_generated']
+            del st.session_state['network_html']
         
-        with st.spinner("Generating network visualization..."):
-            generate_network(user_word, search_depth, num_similar, st.session_state['selected_books'])
-        
-        st.success("✅ Network generated successfully!")
-
-        if 'network_generated' in st.session_state and st.session_state['network_generated']:
-            components.html(st.session_state['network_html'], height=800)
+        if not user_word:
+            st.warning("Please enter a word or number to generate the network.")
+        elif 'selected_books' not in st.session_state or not st.session_state['selected_books']:
+            st.warning("⚠️ Please select and load Bible books first!")
+        else:
+            st.info(f"Building network for '{user_word}' with {num_similar} similar words per level and depth of {search_depth}.")
+            st.info(f"Using books: {', '.join(st.session_state['selected_books'])}")
+            
+            with st.spinner("Generating network visualization..."):
+                generate_network(user_word, search_depth, num_similar, st.session_state['selected_books'])
+            
+            st.success("✅ Network generated successfully!")
+    
+            if 'network_generated' in st.session_state and st.session_state['network_generated']:
+                components.html(st.session_state['network_html'], height=800)
 
 
 # =====================================================
