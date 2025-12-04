@@ -1,4 +1,3 @@
-
 # =====================================================
 # Hebrew Word Visualization App (Streamlit)
 # Senior Capstone Prototype
@@ -25,7 +24,7 @@ import warnings
 warnings.filterwarnings('ignore')
 from pyvis.network import Network
 import streamlit.components.v1 as components
-from network_tools import VocabNet, NetBuilder, Algorithm
+from network_tools import NetBuilder, Algorithm
 from gensim.models.keyedvectors import KeyedVectors
 
 
@@ -263,7 +262,7 @@ search_depth = st.sidebar.number_input(
 def generate_network(word, depth, similar_count, books):
     """Generate word embedding network without page reload"""
 
-     st.cache_data.clear()
+    st.cache_data.clear()
     
     # Handle different input types
     # Check if it's a plain number (old behavior)
@@ -278,39 +277,8 @@ def generate_network(word, depth, similar_count, books):
     else:
         pass
     
-    if st.button("Clear cache"):
-    st.cache_data.clear()
     
-    NB.generate_word_search_network(Algorithm.W2V,
-                                   word,
-                                   num_steps=depth,
-                                   words_per_level=similar_count,
-                                   books_to_include=[])
-    vnet = NB.get_network()
-    # data = nx.node_link_data(vnet)
-    net = Network(height="1000px", width="100%", directed=True, bgcolor="#000000", font_color="white")
-    
-    # Add nodes & edges
-    for n, attrs in vnet.nodes(data=True):
-        if n == NB.process_strongs_input(search_word[0], int(search_word[1:])):
-            net.add_node(n, color='#ffff00', title=n, **attrs)
-        else:
-            net.add_node(n, title=n, **attrs)
-        
-    for u, v, attrs in vnet.edges(data=True):
-        print(attrs['weight'])
-        net.add_edge(u, v, weight=(attrs['weight']), title=attrs['weight'], label=attrs['weight'], arrows="to")
-    
-    # # Prep & render
-    net.repulsion()
-    net.show_buttons()
-    # net.show_buttons(filter_=["layout", "interaction", "nodes", "edges"])
-    # net.show("sim_graph.html")
-    # HtmlFile = open("sim_graph.html", "r", encoding="utf-8")
-    html = net.generate_html()
-    components.html(html, height=750)
-    if st.sidebar.button("Generate Word Embedding"):
-        # Clear previous network when generating a new one
+    with st.spinner("Generating network visualization..."):
         if 'network_generated' in st.session_state:
             del st.session_state['network_generated']
             del st.session_state['network_html']
@@ -322,9 +290,42 @@ def generate_network(word, depth, similar_count, books):
         else:
             st.info(f"Building network for '{user_word}' with {num_similar} similar words per level and depth of {search_depth}.")
             st.info(f"Using books: {', '.join(st.session_state['selected_books'])}")
+
+            dg = nx.DiGraph()
+
+            NB = NetBuilder()
             
-            with st.spinner("Generating network visualization..."):
-                generate_network(user_word, search_depth, num_similar, st.session_state['selected_books'])
+            NB.generate_word_search_network(Algorithm.W2V,
+                                        word,
+                                        num_steps=depth,
+                                        words_per_level=similar_count,
+                                        books_to_include=[])
+            vnet = NB.get_network()
+            # data = nx.node_link_data(vnet)
+            net = Network(height="1000px", width="100%", directed=True, bgcolor="#000000", font_color="white")
+            
+            # Add nodes & edges
+            for n, attrs in vnet.nodes(data=True):
+                if n == NB.process_strongs_input(search_word[0], int(search_word[1:])):
+                    net.add_node(n, color='#ffff00', title=n, **attrs)
+                else:
+                    net.add_node(n, title=n, **attrs)
+                
+            for u, v, attrs in vnet.edges(data=True):
+                print(attrs['weight'])
+                net.add_edge(u, v, weight=(attrs['weight']), title=attrs['weight'], label=attrs['weight'], arrows="to")
+            
+            # # Prep & render
+            net.repulsion()
+            net.show_buttons()
+            # net.show_buttons(filter_=["layout", "interaction", "nodes", "edges"])
+            # net.show("sim_graph.html")
+            # HtmlFile = open("sim_graph.html", "r", encoding="utf-8")
+            html = net.generate_html()
+            components.html(html, height=750)
+            
+            #with st.spinner("Generating network visualization..."):
+                #generate_network(user_word, search_depth, num_similar, st.session_state['selected_books'])
             
             st.success("✅ Network generated successfully!")
     
@@ -377,3 +378,6 @@ if st.sidebar.button("📥 Load Selected Books", type="primary"):
         st.sidebar.success(f"✅ Loaded {len(selected_books)} book(s)")
     else:
         st.sidebar.warning("⚠️ Please select at least one book")
+if st.sidebar.button("Generate Word Embedding"):
+        # Clear previous network when generating a new one
+    generate_network(user_word, search_depth, num_similar, st.session_state['selected_books'])
