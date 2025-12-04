@@ -25,7 +25,7 @@ import warnings
 warnings.filterwarnings('ignore')
 from pyvis.network import Network
 import streamlit.components.v1 as components
-from network_tools import VocabNet
+from network_tools import VocabNet, NetBuilder, Algorithm
 from gensim.models.keyedvectors import KeyedVectors
 
 
@@ -276,32 +276,39 @@ def generate_network(word, depth, similar_count, books):
     else:
         pass
     
-    # Load the Word2Vec model
-    model = safe_load_keyedvectors("stored_bhsa_vectors.kv")
-    
-    if model is not None:
-        G = VocabNet()
-        G.word_search(vecs=model, word=word, num_steps=depth, words_per_level=similar_count)
-        
-        nx_graph = G.dg
-        
-        net = Network(height="800px", width="100%", directed=True,
-                    bgcolor="#000000", font_color="#ffffff")
-        
-        for n, attrs in nx_graph.nodes(data=True):
-            net.add_node(n, title=n, **attrs)
-            
-        for u, v, attrs in nx_graph.edges(data=True):
-            net.add_edge(u, v)
-        
-        net.repulsion()
-        net.prep_notebook()
-        net.show("sim_graph.html")
-        
-        # Store in session state to prevent regeneration
-        st.session_state['network_generated'] = True
-        st.session_state['network_html'] = open("sim_graph.html", "r", encoding="utf-8").read()
+    if st.button("Clear cache"):
+    st.cache_data.clear()
 
+# search_word = 'G2588'
+search_word = 'H3045'
+NB.generate_word_search_network(Algorithm.W2V,
+                               search_word,
+                               num_steps=4,
+                               words_per_level=4,
+                               books_to_include=[], retrain=True)
+vnet = NB.get_network()
+# data = nx.node_link_data(vnet)
+net = Network(height="1000px", width="100%", directed=True, bgcolor="#000000", font_color="white")
+
+# Add nodes & edges
+for n, attrs in vnet.nodes(data=True):
+    if n == NB.process_strongs_input(search_word[0], int(search_word[1:])):
+        net.add_node(n, color='#ffff00', title=n, **attrs)
+    else:
+        net.add_node(n, title=n, **attrs)
+    
+for u, v, attrs in vnet.edges(data=True):
+    print(attrs['weight'])
+    net.add_edge(u, v, weight=(attrs['weight']), title=attrs['weight'], label=attrs['weight'], arrows="to")
+
+# # Prep & render
+net.repulsion()
+net.show_buttons()
+# net.show_buttons(filter_=["layout", "interaction", "nodes", "edges"])
+# net.show("sim_graph.html")
+# HtmlFile = open("sim_graph.html", "r", encoding="utf-8")
+html = net.generate_html()
+components.html(html, height=750)
 if st.sidebar.button("Generate Word Embedding"):
     # Clear previous network when generating a new one
     if 'network_generated' in st.session_state:
