@@ -1,0 +1,1 @@
+Zanella, F. (2008). The Contribution of Componential Analysis to the Semantic Analysis of a Lexical Field of Ancient Hebrew: Some Concrete Examples from the Lexical Field of the Substantives of Gift. European Journal of Jewish Studies, 2(2), 189-212.
