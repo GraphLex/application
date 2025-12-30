@@ -1,0 +1,7 @@
+streamlit
+networkx
+pyvis
+gensim
+pandas
+pyarrow
+text-fabric

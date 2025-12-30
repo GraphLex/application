@@ -306,7 +306,7 @@ def generate_network(word, depth, similar_count, books):
             
             # Add nodes & edges
             for n, attrs in vnet.nodes(data=True):
-                if n == NB.process_strongs_input(search_word[0], int(search_word[1:])):
+                if n == NB.process_strongs_input(word[0], int(word[1:])):
                     net.add_node(n, color='#ffff00', title=n, **attrs)
                 else:
                     net.add_node(n, title=n, **attrs)
