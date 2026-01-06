@@ -4,3 +4,8 @@ sim_graph.html
 tsne.csv
 *.docx
 podman files/
+
+# Large data files
+resources/*.parquet
+resources/*.csv
+resources/*.kv
