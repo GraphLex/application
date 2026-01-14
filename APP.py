@@ -17,6 +17,8 @@
 #Paper: Target audience for the Paper. Next version of paper should have theoretical framework. 
 #Explaining the concepts. Have a concept map. Network or graph or semantical analysis. 2-3 concepts explained.
 
+#NAME IDEA: GraphLex.
+
 # --- Imports ---
 import streamlit as st
 import networkx as nx
