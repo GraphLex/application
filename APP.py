@@ -3,23 +3,15 @@
 # Senior Capstone Prototype
 # =====================================================
 
-# Description of our Project:
-# This Streamlit app allows users to input Hebrew words from a book of the Bible and visualize various aspects of these words.
-# Users can see character frequency, word length distribution, interactive word embeddings with clustering, and a co-occurrence network.
-# The app includes filtering options for word length and first letter, as well as adjustable parameters for t-SNE and KMeans clustering.
-
-#Take away the text box in the beginning when opening the page. Take out the whole radio menu and just leave word 
-#Implement function from picture Rhys showed me
-
 #TO DO for next time
 # : Go deeper into a particular word. Having a text box for specific word. Have a specific word where you can type it in.
 #Reimplement text box where you type in a specific hebrew word.
 #Paper: Target audience for the Paper. Next version of paper should have theoretical framework. 
 #Explaining the concepts. Have a concept map. Network or graph or semantical analysis. 2-3 concepts explained.
 
-#NAME IDEA: GraphLex.
+#Line 337. Change to isinstance? What if this is not strong's input? Do we want to handle this?
 
-#TEST COMMENT HERE
+#If syngtagmatic, then everything from Bible book selection onwards should appear.
 
 # --- Imports ---
 import streamlit as st
@@ -105,35 +97,6 @@ BIBLE_BOOKS = {
     "Revelation": "NT"
 }
 
-
-def safe_load_keyedvectors(path: str):
-    """Try to load keyed vectors from `path`. If the file doesn't exist or loading fails,
-    show a helpful Streamlit message and return None.
-    """
-    try:
-        return KeyedVectors.load(path)
-    except FileNotFoundError:
-        st.error(
-            f"Word vector file not found: '{path}'.\n\nPlace the file in the app folder or update the path.\n" \
-            "If you don't have the vectors, you can generate/load them separately or upload a compatible KeyedVectors file."
-        )
-        st.stop()
-        return None
-    except Exception as e:
-        st.error(f"Failed to load word vectors from '{path}': {e}")
-        st.stop()
-        return None
-
-
-def display_selected_books():
-    """Display the currently selected Bible books"""
-    if 'selected_books' in st.session_state and st.session_state['selected_books']:
-        books = st.session_state['selected_books']
-        st.info(f"📖 Selected Books: **{', '.join(books)}**")
-        return books
-    return None
-
-
 # =====================================================
 # App Configuration
 # =====================================================
@@ -173,9 +136,6 @@ st.markdown(
 # Instructions
 st.markdown("**Instructions:** Select Bible books from the sidebar to train the Word2Vec model and explore Hebrew word relationships.")
 
-# Display currently selected books
-current_books = display_selected_books()
-
 # =====================================================
 # Sidebar Configuration
 # =====================================================
@@ -184,7 +144,7 @@ st.sidebar.header("🎛️ Visualization Options")
 #------------------------------------------------------
 #About section
 #------------------------------------------------------
-st.sidebar.markdown("---")
+# st.sidebar.markdown("---")
 st.sidebar.markdown("### 📚 About")
 st.sidebar.info(
     "This tool analyzes Hebrew words from Biblical texts using Word2Vec embeddings "
@@ -194,18 +154,10 @@ st.sidebar.info(
 # =====================================================
 # Word Embeddings Display
 # =====================================================
-st.subheader("📚 Word Embeddings Network")
 
-visualization_choice = "Word Embeddings"
-
-if 'selected_books' not in st.session_state or not st.session_state['selected_books']:
-    st.warning("⚠️ Please select and load Bible books from the sidebar first!")
-    st.info("The Word2Vec model will be trained on the selected books to generate word embeddings.")
-elif 'network_generated' in st.session_state and st.session_state['network_generated']:
+if 'network_generated' in st.session_state and st.session_state['network_generated']:
     # Display the network without regenerating
     components.html(st.session_state['network_html'], height=800)
-else:
-    st.info("👈 Enter a word or number in the sidebar and click 'Generate Word Embedding' to visualize the network.")
 
 # =====================================================
 # Word Embeddings Sidebar Options
@@ -214,46 +166,54 @@ st.sidebar.markdown("### Word Network Settings")
 st.sidebar.caption("Control how deeply and widely the Hebrew word network explores relationships.")
 
 
- # Input type selection (Word or Strong's Number)
-input_type = st.sidebar.radio(
-    "Input Type",
-    options=["Word", "Strong's Number"],
-    horizontal=True
+# =====================================================
+# Relation Type Selection
+# =====================================================
+
+relation_type = st.sidebar.radio(
+    "Relation Type",
+    options=["Paradigmatic", "Syntagmatic"],
+    index = 0,
+    help="Paradigmatic: semantic similarity | Syntagmatic: contextual co-occurrence"
 )
 
-if input_type == "Word":
-    user_word = st.sidebar.text_input("Enter Hebrew word")
-else:
-    # Strong's Number input with H/G prefix buttons
-    col1, col2, col3 = st.sidebar.columns([1, 1, 3])
-    
-    with col1:
-        if st.button("H", key="hebrew_btn", help="Hebrew Strong's"):
-            st.session_state["strongs_prefix"] = "H"
-    
-    with col2:
-        if st.button("G", key="greek_btn", help="Greek Strong's"):
-            st.session_state["strongs_prefix"] = "G"
-    
-    # Initialize prefix if not set
-    if "strongs_prefix" not in st.session_state:
+#st.sidebar.markdown("---") # Adding a visual separator between sections here
+
+# ----------------------------------------------------
+
+
+
+
+# Strong's Number input with H/G prefix buttons
+col1, col2, col3 = st.sidebar.columns([1, 1, 3])
+
+with col1:
+    if st.button("H", key="hebrew_btn", help="Hebrew Strong's"):
         st.session_state["strongs_prefix"] = "H"
-    
-    with col3:
-        strongs_number = st.sidebar.text_input(
-            f"Strong's Number ({st.session_state['strongs_prefix']})",
-            placeholder="e.g., 430"
-        )
-    
-    # Combine prefix + number for the final word
-    if strongs_number:
-        user_word = f"{st.session_state['strongs_prefix']}{strongs_number}"
-    else:
-        user_word = ""
+
+with col2:
+    if st.button("G", key="greek_btn", help="Greek Strong's"):
+        st.session_state["strongs_prefix"] = "G"
+
+# Initialize prefix if not set
+if "strongs_prefix" not in st.session_state:
+    st.session_state["strongs_prefix"] = "H"
+
+with col3:
+    strongs_number = st.sidebar.text_input(
+        f"Strong's Number ({st.session_state['strongs_prefix']})",
+        placeholder="e.g., 430"
+    )
+
+# Combine prefix + number for the final word
+if strongs_number:
+    user_word = f"{st.session_state['strongs_prefix']}{strongs_number}"
+else:
+    user_word = ""
 
 num_similar = st.sidebar.number_input(
     "Number of Similar Words per Level", 
-    min_value=1, max_value=100, value=10,
+    min_value=1, max_value=100, value=2,
     help="Controls how many related words are added per level."
 )
 
@@ -263,10 +223,20 @@ search_depth = st.sidebar.number_input(
     help="Controls how many levels deep the network searches."
 )
 
-def generate_network(word, depth, similar_count, books):
-    """Generate word embedding network without page reload"""
+
+def generate_network(word, depth, similar_count, books, relation_type):
+    """Generate word embedding network without page reload
+       Note: Added relation_type as a parameter. 
+
+       Generates a word network using either paradigmatic (Word2Vec)
+       or syntagmatic (co-occurrence) relationships based on user selection"""
 
     st.cache_data.clear()
+
+    if relation_type == "Syntagmatic":
+        algorithm = Algorithm.CON
+    else:
+        algorithm = Algorithm.W2V
     
     # Handle different input types
     # Check if it's a plain number (old behavior)
@@ -281,13 +251,12 @@ def generate_network(word, depth, similar_count, books):
     else:
         pass
     
-    
     with st.spinner("Generating network visualization..."):
         if 'network_generated' in st.session_state:
             del st.session_state['network_generated']
             del st.session_state['network_html']
         
-        if not user_word:
+        if not user_word: 
             st.warning("Please enter a word or number to generate the network.")
         elif 'selected_books' not in st.session_state or not st.session_state['selected_books']:
             st.warning("⚠️ Please select and load Bible books first!")
@@ -298,19 +267,23 @@ def generate_network(word, depth, similar_count, books):
             dg = nx.DiGraph()
 
             NB = NetBuilder()
+
+            #CHANGED THIS below: Now Build the word network using the selected linguistic relationship model
             
-            NB.generate_word_search_network(Algorithm.W2V,
-                                        word,
-                                        num_steps=depth,
-                                        words_per_level=similar_count,
-                                        books_to_include=[])
+            NB.generate_word_search_network(
+                algorithm,
+                word,
+                num_steps=depth,
+                words_per_level=similar_count,
+                books_to_include=books) 
+            
             vnet = NB.get_network()
             # data = nx.node_link_data(vnet)
             net = Network(height="1000px", width="100%", directed=True, bgcolor="#000000", font_color="white")
             
             # Add nodes & edges
             for n, attrs in vnet.nodes(data=True):
-                if n == NB.process_strongs_input(word[0], int(word[1:])):
+                if n == NB.process_strongs_input(word[0], int(word[1:])): #CHANGE THIS to isinstance?
                     net.add_node(n, color='#ffff00', title=n, **attrs)
                 else:
                     net.add_node(n, title=n, **attrs)
@@ -384,4 +357,10 @@ if st.sidebar.button("📥 Load Selected Books", type="primary"):
         st.sidebar.warning("⚠️ Please select at least one book")
 if st.sidebar.button("Generate Word Embedding"):
         # Clear previous network when generating a new one
-    generate_network(user_word, search_depth, num_similar, st.session_state['selected_books'])
+    generate_network(user_word, search_depth, num_similar, st.session_state['selected_books'], relation_type)
+
+
+#THINGS TO BRING UP WITH RHYS: 
+#Change the UI on the app to have less space?
+#Any other app cleanup?
+#The paper
