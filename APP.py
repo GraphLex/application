@@ -18,10 +18,11 @@ import streamlit as st
 import networkx as nx
 import warnings
 warnings.filterwarnings('ignore')
-from pyvis.network import Network
+# from pyvis.network import Network
 import streamlit.components.v1 as components
-from network_tools import NetBuilder, Algorithm
-from gensim.models.keyedvectors import KeyedVectors
+from network_tools import NetBuilder, Algorithm, Source
+# from gensim.models.keyedvectors import KeyedVectors
+from st_link_analysis import st_link_analysis, NodeStyle, EdgeStyle
 
 
 # =====================================================
@@ -101,7 +102,7 @@ BIBLE_BOOKS = {
 # App Configuration
 # =====================================================
 st.set_page_config(
-    page_title="Hebrew Word Explorer",
+    page_title="GraphLex",
     page_icon="📊",
     layout="wide"
 )
@@ -127,29 +128,35 @@ st.markdown(
     .top-intro { margin-top: 0 !important; color: #DDDDDD; font-size:16px; }
     </style>
 
-    <h1>📖 Hebrew Word Explorer</h1>
-    <p class="top-intro">Explore how Biblical Hebrew words connect, co-occur, and relate semantically through Scripture.</p>
+    <h1>GraphLex</h1>
+    <p class="top-intro">Explore how Greek and Hebrew words co-occur and relate semantically through Scripture.</p>
     """,
     unsafe_allow_html=True,
 )
 
 # Instructions
-st.markdown("**Instructions:** Select Bible books from the sidebar to train the Word2Vec model and explore Hebrew word relationships.")
+st.markdown("**Instructions:** Enter a Strong's Concordance Number on the left sidebar under Visualization Options. Select paradigmatic (similarity) or syntagmatic (co-occurrence) relationships and the network breadth and depth.")
 
-# =====================================================
-# Sidebar Configuration
-# =====================================================
-st.sidebar.header("🎛️ Visualization Options")
 
 #------------------------------------------------------
 #About section
 #------------------------------------------------------
 # st.sidebar.markdown("---")
-st.sidebar.markdown("### 📚 About")
-st.sidebar.info(
-    "This tool analyzes Hebrew words from Biblical texts using Word2Vec embeddings "
-    "and various text analysis techniques. Select books to train a custom model on specific Biblical content."
+st.sidebar.header("📚 About")
+st.sidebar.markdown(
+    "This tool generates networks of related words from Scripture. There are two types of relationships:\n\n" \
+    "- Paradigmatic relationships are those based on semantic similarity as measured by the Word2Vec algorithm. For instance, 'cat' and 'dog' would have high correlation.\n" \
+    "- Syntagmatic relationships are those based on co-occurrence counts. For instance, 'dog' and 'barks' would have high correlation."
 )
+st.sidebar.info("**Exegesis Tips**:\n\nBe aware of polysemy - many words can have more than one meaning, which these datasets may not not distinguish.\n\n"
+                "Do not assume theological significance to a relation simply because it's there. Ask why--why are these words related?"
+)
+
+
+# =====================================================
+# Sidebar Configuration
+# =====================================================
+st.sidebar.header("🎛️ Visualization Options")
 
 # =====================================================
 # Word Embeddings Display
@@ -242,14 +249,17 @@ def generate_network(word, depth, similar_count, books, relation_type):
     # Check if it's a plain number (old behavior)
     if word.isdigit():
         word = int(word)
-    # Check if it's a Strong's number (H#### or G####)
-    elif word.startswith(('H', 'G')) and len(word) > 1 and word[1:].isdigit():
-        # Keep as string (e.g., "H430", "G2316")
-        # VocabNet will handle the Strong's number format
-        pass
-    # Otherwise it's a Hebrew/Greek word - keep as string
     else:
         pass
+        # raise ValueError("Enter a number!")
+    # Check if it's a Strong's number (H#### or G####)
+    # elif word.startswith(('H', 'G')) and len(word) > 1 and word[1:].isdigit():
+    #     # Keep as string (e.g., "H430", "G2316")
+    #     # VocabNet will handle the Strong's number format
+    #     pass
+    # # Otherwise it's a Hebrew/Greek word - keep as string
+    # else:
+    #     pass
     
     with st.spinner("Generating network visualization..."):
         if 'network_generated' in st.session_state:
@@ -264,8 +274,6 @@ def generate_network(word, depth, similar_count, books, relation_type):
             st.info(f"Building network for '{user_word}' with {num_similar} similar words per level and depth of {search_depth}.")
             st.info(f"Using books: {', '.join(st.session_state['selected_books'])}")
 
-            dg = nx.DiGraph()
-
             NB = NetBuilder()
 
             #CHANGED THIS below: Now Build the word network using the selected linguistic relationship model
@@ -278,28 +286,96 @@ def generate_network(word, depth, similar_count, books, relation_type):
                 books_to_include=books) 
             
             vnet = NB.get_network()
-            # data = nx.node_link_data(vnet)
-            net = Network(height="1000px", width="100%", directed=True, bgcolor="#000000", font_color="white")
+
             
-            # Add nodes & edges
+            elements = {"nodes": [], "edges": []}
+            counter = 1
+            index = {}
             for n, attrs in vnet.nodes(data=True):
-                if n == NB.process_strongs_input(word[0], int(word[1:])): #CHANGE THIS to isinstance?
-                    net.add_node(n, color='#ffff00', title=n, **attrs)
-                else:
-                    net.add_node(n, title=n, **attrs)
-                
+                strongnums = NB.lex_to_strongs(Source[st.session_state["strongs_prefix"]], n)
+                strong_string = ""
+                for num in strongnums:
+                    strong_string += (num[0].name + str(num[1:][0]))
+
+                # take the list[tuple[Source, int]] and put it into a simple string
+                elements["nodes"].append({"data": {"id": n, "label": "LEMMA", "lexical_form": n, "strongs_numbers": strong_string}})
+                index[n] = counter
+                counter+=1
+                # print(index[n])
+
+            print(index)
             for u, v, attrs in vnet.edges(data=True):
-                print(attrs['weight'])
-                net.add_edge(u, v, weight=(attrs['weight']), title=attrs['weight'], label=attrs['weight'], arrows="to")
+                elements["edges"].append(
+                    # {"data":
+                    #     {"id": counter,
+                    #      "label": "SYNTAGMATIC_RELATION",
+                    #     #  "text": str(attrs["weight"]),
+                    #      "source": index[u],
+                    #      "target": index[v]
+                    #      }
+                    # }
+                    {"data": {"id": counter, "label": "SYNTAGMATIC_RELATION" if algorithm == Algorithm.CON else "PARADIGMATIC_RELATION", "frequency/similarity": str(attrs["weight"]), "source": u, "target": v}}
+                )
+                print(f"u: {index[u]}, v: {index[v]}")
+                counter+=1
+
+            print(elements["edges"])
+
+            node_styles = [
+                NodeStyle("LEMMA", "#69A3DD", caption="lexical_form")
+            ]
+
+            edge_styles = [
+                EdgeStyle("SYNTAGMATIC_RELATION",  directed=True),
+                EdgeStyle("PARADIGMATIC_RELATION",  directed=True)
+            ]
+
+
+            # elements = {
+            #     "nodes": [
+            #         {"data": {"id": 1, "label": "PERSON", "name": "Streamlit"}},
+            #         {"data": {"id": 2, "label": "PERSON", "name": "Hello"}},
+            #         {"data": {"id": 3, "label": "PERSON", "name": "World"}},
+            #         {"data": {"id": 4, "label": "POST", "content": "x"}},
+            #         {"data": {"id": 5, "label": "POST", "content": "y"}},
+            #     ],
+            #     "edges": [
+            #         {"data": {"id": 6, "label": "FOLLOWS", "source": 1, "target": 2}},
+            #         {"data": {"id": 7, "label": "FOLLOWS", "source": 2, "target": 3}},
+            #         {"data": {"id": 8, "label": "POSTED", "source": 3, "target": 4}},
+            #         {"data": {"id": 9, "label": "POSTED", "source": 1, "target": 5}},
+            #         {"data": {"id": 10, "label": "QUOTES", "source": 5, "target": 4}},
+            #     ],
+            # }
+
+
+            st_link_analysis(elements, "cose", node_styles, edge_styles)
+
+
+
+
+            # data = nx.node_link_data(vnet)
+            # net = Network(height="1000px", width="100%", directed=True, bgcolor="#000000", font_color="white")
             
-            # # Prep & render
-            net.repulsion()
-            net.show_buttons()
-            # net.show_buttons(filter_=["layout", "interaction", "nodes", "edges"])
-            # net.show("sim_graph.html")
-            # HtmlFile = open("sim_graph.html", "r", encoding="utf-8")
-            html = net.generate_html()
-            components.html(html, height=750)
+            # # Add nodes & edges
+            # for n, attrs in vnet.nodes(data=True):
+            #     if n == NB.process_strongs_input(word[0], int(word[1:])): #CHANGE THIS to isinstance?
+            #         net.add_node(n, color='#ffff00', title=n, **attrs)
+            #     else:
+            #         net.add_node(n, title=n, **attrs)
+                
+            # for u, v, attrs in vnet.edges(data=True):
+            #     print(attrs['weight'])
+            #     net.add_edge(u, v, weight=(attrs['weight']), title=attrs['weight'], label=attrs['weight'], arrows="to")
+            
+            # # # Prep & render
+            # net.repulsion()
+            # net.show_buttons()
+            # # net.show_buttons(filter_=["layout", "interaction", "nodes", "edges"])
+            # # net.show("sim_graph.html")
+            # # HtmlFile = open("sim_graph.html", "r", encoding="utf-8")
+            # html = net.generate_html()
+            # components.html(html, height=750)
             
             #with st.spinner("Generating network visualization..."):
                 #generate_network(user_word, search_depth, num_similar, st.session_state['selected_books'])
