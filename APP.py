@@ -431,13 +431,13 @@ def bible_book_selector():
             st.sidebar.success(f"✅ Loaded {len(selected_books)} book(s)")
         else:
             st.sidebar.warning("⚠️ Please select at least one book")
-    if st.sidebar.button("Generate Word Embedding"):
-            # Clear previous network when generating a new one
-        generate_network(user_word, search_depth, num_similar, st.session_state['selected_books'], relation_type)
 
 if relation_type == "Syntagmatic":
     bible_book_selector()
 
+if st.sidebar.button("Generate Word Embedding"):
+    # Clear previous network when generating a new one
+    generate_network(user_word, search_depth, num_similar, st.session_state['selected_books'], relation_type)
 
 #THINGS TO BRING UP WITH RHYS: 
 #Change the UI on the app to have less space?
