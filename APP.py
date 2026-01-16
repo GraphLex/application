@@ -96,6 +96,73 @@ BIBLE_BOOKS = {
     "Revelation": "NT"
 }
 
+BOOK_IDS = {'Genesis': 0,
+ 'Exodus': 1,
+ 'Leviticus': 2,
+ 'Numbers': 3,
+ 'Deuteronomy': 4,
+ 'Joshua': 5,
+ 'Judges': 6,
+ 'I Samuel': 7,
+ 'II Samuel': 8,
+ 'I Kings': 9,
+ 'II Kings': 10,
+ 'Isaiah': 11,
+ 'Jeremiah': 12,
+ 'Ezekiel': 13,
+ 'Hosea': 14,
+ 'Joel': 15,
+ 'Amos': 16,
+ 'Obadiah': 17,
+ 'Jonah': 18,
+ 'Micah': 19,
+ 'Nahum': 20,
+ 'Habakkuk': 21,
+ 'Zephaniah': 22,
+ 'Haggai': 23,
+ 'Zachariah': 24,
+ 'Malachi': 25,
+ 'Psalms': 26,
+ 'Job': 27,
+ 'Proverbs': 28,
+ 'Ruth': 29,
+ 'Song of Solomon': 30,
+ 'Ecclesiastes': 31,
+ 'Lamentations': 32,
+ 'Esther': 33,
+ 'Daniel': 34,
+ 'Ezra': 35,
+ 'Nehemiah': 36,
+ 'I Chronicles': 37,
+ 'II Chronicles': 38,
+ 'Matthew': 0,
+ 'Mark': 1,
+ 'Luke': 2,
+ 'John': 3,
+ 'Acts': 4,
+ 'Romans': 5,
+ 'I Corinthians': 6,
+ 'II Corinthians': 7,
+ 'Galatians': 8,
+ 'Ephesians': 9,
+ 'Philippians': 10,
+ 'Colossians': 11,
+ 'I Thessalonians': 12,
+ 'II Thessalonians': 13,
+ 'I Timothy': 14,
+ 'II Timothy': 15,
+ 'Titus': 16,
+ 'Philemon': 17,
+ 'Hebrews': 18,
+ 'James': 19,
+ 'I Peter': 20,
+ 'II Peter': 21,
+ 'I John': 22,
+ 'II John': 23,
+ 'III John': 24,
+ 'Jude': 25,
+ 'Revelation': 26}
+
 # =====================================================
 # App Configuration
 # =====================================================
@@ -108,9 +175,10 @@ st.set_page_config(
 # =====================================================
 # App Title and Description
 # =====================================================
+
 st.markdown(
     """
-    <style>
+       <style>
     /* Stronger top-of-page layout: remove top padding and tighten margins */
     .reportview-container .main .block-container,
     .stApp .main .block-container,
@@ -121,9 +189,10 @@ st.markdown(
         margin: 0 auto;
     }
 
-    /* Reduce header margins and ensure title sits at the very top */
-    h1 { margin-top: 0rem !important; margin-bottom: 0.25rem !important; font-size:48px; }
-    .top-intro { margin-top: 0 !important; color: #DDDDDD; font-size:16px; }
+        /* Reduce header margins and ensure title sits at the very top */
+    h1 { margin-top: 0rem !important; margin-bottom: 0.25rem !important; font-size:48px;  font-family: 'Playfair Display', sans-serif }
+    .top-intro { margin-top: 0 !important; color: #DDDDDD; font-size:16px;
+   }
     </style>
 
     <h1>GraphLex</h1>
@@ -266,11 +335,12 @@ def generate_network(word, depth, similar_count, books, relation_type):
         
         if not user_word: 
             st.warning("Please enter a word or number to generate the network.")
-        elif 'selected_books' not in st.session_state or not st.session_state['selected_books']:
-            st.warning("⚠️ Please select and load Bible books first!")
+        # elif 'selected_books' not in st.session_state or not st.session_state['selected_books']:
+        #     st.warning("⚠️ Please select and load Bible books first!")
         else:
             st.info(f"Building network for '{user_word}' with {num_similar} similar words per level and depth of {search_depth}.")
-            st.info(f"Using books: {', '.join(st.session_state['selected_books'])}")
+            if 'selected_books' in st.session_state:
+                st.info(f"Using books: {', '.join(st.session_state['selected_books'])}")
 
             NB = NetBuilder()
 
@@ -285,7 +355,6 @@ def generate_network(word, depth, similar_count, books, relation_type):
             
             vnet = NB.get_network()
 
-            
             elements = {"nodes": [], "edges": []}
             counter = 1
             index = {}
@@ -304,14 +373,6 @@ def generate_network(word, depth, similar_count, books, relation_type):
             print(index)
             for u, v, attrs in vnet.edges(data=True):
                 elements["edges"].append(
-                    # {"data":
-                    #     {"id": counter,
-                    #      "label": "SYNTAGMATIC_RELATION",
-                    #     #  "text": str(attrs["weight"]),
-                    #      "source": index[u],
-                    #      "target": index[v]
-                    #      }
-                    # }
                     {"data": {"id": counter, "label": "SYNTAGMATIC_RELATION" if algorithm == Algorithm.CON else "PARADIGMATIC_RELATION", "frequency/similarity": str(attrs["weight"]), "source": u, "target": v}}
                 )
                 print(f"u: {index[u]}, v: {index[v]}")
@@ -328,57 +389,7 @@ def generate_network(word, depth, similar_count, books, relation_type):
                 EdgeStyle("PARADIGMATIC_RELATION",  directed=True)
             ]
 
-
-            # elements = {
-            #     "nodes": [
-            #         {"data": {"id": 1, "label": "PERSON", "name": "Streamlit"}},
-            #         {"data": {"id": 2, "label": "PERSON", "name": "Hello"}},
-            #         {"data": {"id": 3, "label": "PERSON", "name": "World"}},
-            #         {"data": {"id": 4, "label": "POST", "content": "x"}},
-            #         {"data": {"id": 5, "label": "POST", "content": "y"}},
-            #     ],
-            #     "edges": [
-            #         {"data": {"id": 6, "label": "FOLLOWS", "source": 1, "target": 2}},
-            #         {"data": {"id": 7, "label": "FOLLOWS", "source": 2, "target": 3}},
-            #         {"data": {"id": 8, "label": "POSTED", "source": 3, "target": 4}},
-            #         {"data": {"id": 9, "label": "POSTED", "source": 1, "target": 5}},
-            #         {"data": {"id": 10, "label": "QUOTES", "source": 5, "target": 4}},
-            #     ],
-            # }
-
-
             st_link_analysis(elements, "cose", node_styles, edge_styles)
-
-
-
-
-            # data = nx.node_link_data(vnet)
-            # net = Network(height="1000px", width="100%", directed=True, bgcolor="#000000", font_color="white")
-            
-            # # Add nodes & edges
-            # for n, attrs in vnet.nodes(data=True):
-            #     if n == NB.process_strongs_input(word[0], int(word[1:])): #CHANGE THIS to isinstance?
-            #         net.add_node(n, color='#ffff00', title=n, **attrs)
-            #     else:
-            #         net.add_node(n, title=n, **attrs)
-                
-            # for u, v, attrs in vnet.edges(data=True):
-            #     print(attrs['weight'])
-            #     net.add_edge(u, v, weight=(attrs['weight']), title=attrs['weight'], label=attrs['weight'], arrows="to")
-            
-            # # # Prep & render
-            # net.repulsion()
-            # net.show_buttons()
-            # # net.show_buttons(filter_=["layout", "interaction", "nodes", "edges"])
-            # # net.show("sim_graph.html")
-            # # HtmlFile = open("sim_graph.html", "r", encoding="utf-8")
-            # html = net.generate_html()
-            # components.html(html, height=750)
-            
-            #with st.spinner("Generating network visualization..."):
-                #generate_network(user_word, search_depth, num_similar, st.session_state['selected_books'])
-            
-            st.success("✅ Network generated successfully!")
     
             if 'network_generated' in st.session_state and st.session_state['network_generated']:
                 components.html(st.session_state['network_html'], height=800)
@@ -418,7 +429,7 @@ def bible_book_selector():
         "Choose Bible Books",
         options=list(BIBLE_BOOKS.keys()),
         default=st.session_state["multiselect_value"],
-        help="Select multiple books to train the Word2Vec model",
+        help="Select multiple books to calculate co-occurrence frequency",
     )
 
     # Keep session state in sync
@@ -435,9 +446,9 @@ def bible_book_selector():
 if relation_type == "Syntagmatic":
     bible_book_selector()
 
-if st.sidebar.button("Generate Word Embedding"):
+if st.sidebar.button("Generate Semantic Network"):
     # Clear previous network when generating a new one
-    generate_network(user_word, search_depth, num_similar, st.session_state['selected_books'], relation_type)
+    generate_network(user_word, search_depth, num_similar, [BOOK_IDS[b_name] for b_name in st.session_state['selected_books']], relation_type)
 
 #THINGS TO BRING UP WITH RHYS: 
 #Change the UI on the app to have less space?

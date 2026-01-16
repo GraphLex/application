@@ -67,9 +67,15 @@ class NetBuilder():
                 return [[(Source[i[0]], int(i[1:].strip())) for i in item.split("＋")] for item in self.gnt['strongno'][self.gnt['lemma'] == lex].unique()][0]
 
     
-    def generate_comat(self, target_word: str, source: Source, window_size = 3) -> pd.DataFrame:
+    def generate_comat(self, source: Source, window_size = 3, included_books = None) -> pd.DataFrame:
         df = self.hb if source == Source.H else self.gnt
-        #TODO: Add book parsing here.
+        
+        if included_books:
+            df = df[df['book'].astype(int).isin(included_books)]
+            df = df.reset_index(drop=True)
+            print(f"incl_books, {included_books}, dflen {len(df)}, df {df}")
+
+
         wordmap: dict = {w: i for i, w in enumerate(df['lemma'])}
         lemmas: pd.Series = pd.Series(wordmap.keys(), index = list(range(len(wordmap))) ) 
         lemma_index = pd.Index(lemmas)
@@ -168,7 +174,7 @@ class NetBuilder():
         source = Source[unparsed_word[0]]
 
         if algo == Algorithm.CON:
-            df = _self.generate_comat(word, source)            
+            df = _self.generate_comat(source, included_books=books_to_include)            
         elif algo == Algorithm.W2V:
             df = _self._generate_w2v_similarity_matrix(source=source, retrain=retrain) 
         else:
