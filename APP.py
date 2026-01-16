@@ -11,8 +11,6 @@
 
 #Line 337. Change to isinstance? What if this is not strong's input? Do we want to handle this?
 
-#If syngtagmatic, then everything from Bible book selection onwards should appear.
-
 # --- Imports ---
 import streamlit as st
 import networkx as nx
@@ -181,8 +179,8 @@ relation_type = st.sidebar.radio(
 
 # ----------------------------------------------------
 
-
-
+##If syntagmatic, then everything from Bible book selection onwards should appear.
+# Everything under search depth should be blank if i choose paradigmatic
 
 # Strong's Number input with H/G prefix buttons
 col1, col2, col3 = st.sidebar.columns([1, 1, 3])
@@ -313,51 +311,56 @@ def generate_network(word, depth, similar_count, books, relation_type):
 # =====================================================
 # Bible Book Selector (Multi-select) with Presets
 # =====================================================
-st.sidebar.markdown("### 📖 Bible Book Selection")
-st.sidebar.caption("Select one or more books to analyze")
+def bible_book_selector():
 
-# Initialize multiselect value if not set
-if "multiselect_value" not in st.session_state:
-    st.session_state["multiselect_value"] = ["Genesis"]
+    st.sidebar.markdown("### 📖 Bible Book Selection")
+    st.sidebar.caption("Select one or more books to analyze")
 
-# --- Preset Buttons ---
-        #All books
-if st.sidebar.button('Whole Bible'):
-    all_books = list(BIBLE_BOOKS.keys())
-    st.session_state["selected_books"] = all_books
-    st.session_state['multiselect_value'] = all_books
+    # Initialize multiselect value if not set
+    if "multiselect_value" not in st.session_state:
+        st.session_state["multiselect_value"] = ["Genesis"]
 
-if st.sidebar.button("Whole OT"):
-    ot_books = [book for book, sec in BIBLE_BOOKS.items() if sec == "OT"]
-    st.session_state["selected_books"] = ot_books
-    st.session_state["multiselect_value"] = ot_books
+    # --- Preset Buttons ---
+            #All books
+    if st.sidebar.button('Whole Bible'):
+        all_books = list(BIBLE_BOOKS.keys())
+        st.session_state["selected_books"] = all_books
+        st.session_state['multiselect_value'] = all_books
 
-if st.sidebar.button("Whole NT"):
-    nt_books = [book for book, sec in BIBLE_BOOKS.items() if sec == "NT"]
-    st.session_state["selected_books"] = nt_books
-    st.session_state["multiselect_value"] = nt_books
+    if st.sidebar.button("Whole OT"):
+        ot_books = [book for book, sec in BIBLE_BOOKS.items() if sec == "OT"]
+        st.session_state["selected_books"] = ot_books
+        st.session_state["multiselect_value"] = ot_books
 
-# --- Multiselect (uses session state value) ---
-selected_books = st.sidebar.multiselect(
-    "Choose Bible Books",
-    options=list(BIBLE_BOOKS.keys()),
-    default=st.session_state["multiselect_value"],
-    help="Select multiple books to train the Word2Vec model",
-)
+    if st.sidebar.button("Whole NT"):
+        nt_books = [book for book, sec in BIBLE_BOOKS.items() if sec == "NT"]
+        st.session_state["selected_books"] = nt_books
+        st.session_state["multiselect_value"] = nt_books
 
-# Keep session state in sync
-st.session_state["selected_books"] = selected_books
-st.session_state["multiselect_value"] = selected_books
+    # --- Multiselect (uses session state value) ---
+    selected_books = st.sidebar.multiselect(
+        "Choose Bible Books",
+        options=list(BIBLE_BOOKS.keys()),
+        default=st.session_state["multiselect_value"],
+        help="Select multiple books to train the Word2Vec model",
+    )
 
-# --- Load Books Button ---
-if st.sidebar.button("📥 Load Selected Books", type="primary"):
-    if selected_books:
-        st.sidebar.success(f"✅ Loaded {len(selected_books)} book(s)")
-    else:
-        st.sidebar.warning("⚠️ Please select at least one book")
-if st.sidebar.button("Generate Word Embedding"):
-        # Clear previous network when generating a new one
-    generate_network(user_word, search_depth, num_similar, st.session_state['selected_books'], relation_type)
+    # Keep session state in sync
+    st.session_state["selected_books"] = selected_books
+    st.session_state["multiselect_value"] = selected_books
+
+    # --- Load Books Button ---
+    if st.sidebar.button("📥 Load Selected Books", type="primary"):
+        if selected_books:
+            st.sidebar.success(f"✅ Loaded {len(selected_books)} book(s)")
+        else:
+            st.sidebar.warning("⚠️ Please select at least one book")
+    if st.sidebar.button("Generate Word Embedding"):
+            # Clear previous network when generating a new one
+        generate_network(user_word, search_depth, num_similar, st.session_state['selected_books'], relation_type)
+
+if relation_type == "Syntagmatic":
+    bible_book_selector()
 
 
 #THINGS TO BRING UP WITH RHYS: 
