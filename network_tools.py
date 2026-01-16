@@ -58,6 +58,15 @@ class NetBuilder():
             case Algorithm.W2V:
                 return pd.Series(df.drop(word, axis=0)[word].nlargest(topn))
         
+    def lex_to_strongs(self, source: Source, lex: str) -> list[tuple[Source, int]]:
+        # TODO: Stop trying to make these all one-liners.
+        match source:
+            case source.H:
+                return [[(Source[i[0]], int(i[1:].strip())) for i in item.split("＋")] for item in self.hb['strongno'][self.hb['lemma'] == lex].unique()][0]
+            case source.G:
+                return [[(Source[i[0]], int(i[1:].strip())) for i in item.split("＋")] for item in self.gnt['strongno'][self.gnt['lemma'] == lex].unique()][0]
+
+    
     def generate_comat(self, target_word: str, source: Source, window_size = 3) -> pd.DataFrame:
         df = self.hb if source == Source.H else self.gnt
         #TODO: Add book parsing here.
