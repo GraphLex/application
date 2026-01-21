@@ -103,10 +103,10 @@ BOOK_IDS = {'Genesis': 0,
  'Deuteronomy': 4,
  'Joshua': 5,
  'Judges': 6,
- 'I Samuel': 7,
- 'II Samuel': 8,
- 'I Kings': 9,
- 'II Kings': 10,
+ '1 Samuel': 7,
+ '2 Samuel': 8,
+ '1 Kings': 9,
+ '2 Kings': 10,
  'Isaiah': 11,
  'Jeremiah': 12,
  'Ezekiel': 13,
@@ -120,7 +120,7 @@ BOOK_IDS = {'Genesis': 0,
  'Habakkuk': 21,
  'Zephaniah': 22,
  'Haggai': 23,
- 'Zachariah': 24,
+ 'Zechariah': 24,
  'Malachi': 25,
  'Psalms': 26,
  'Job': 27,
@@ -133,33 +133,33 @@ BOOK_IDS = {'Genesis': 0,
  'Daniel': 34,
  'Ezra': 35,
  'Nehemiah': 36,
- 'I Chronicles': 37,
- 'II Chronicles': 38,
+ '1 Chronicles': 37,
+ '2 Chronicles': 38,
  'Matthew': 0,
  'Mark': 1,
  'Luke': 2,
  'John': 3,
  'Acts': 4,
  'Romans': 5,
- 'I Corinthians': 6,
- 'II Corinthians': 7,
+ '1 Corinthians': 6,
+ '2 Corinthians': 7,
  'Galatians': 8,
  'Ephesians': 9,
  'Philippians': 10,
  'Colossians': 11,
- 'I Thessalonians': 12,
- 'II Thessalonians': 13,
- 'I Timothy': 14,
- 'II Timothy': 15,
+ '1 Thessalonians': 12,
+ '2 Thessalonians': 13,
+ '1 Timothy': 14,
+ '2 Timothy': 15,
  'Titus': 16,
  'Philemon': 17,
  'Hebrews': 18,
  'James': 19,
- 'I Peter': 20,
- 'II Peter': 21,
- 'I John': 22,
- 'II John': 23,
- 'III John': 24,
+ '1 Peter': 20,
+ '2 Peter': 21,
+ '1 John': 22,
+ '2 John': 23,
+ '3 John': 24,
  'Jude': 25,
  'Revelation': 26}
 
@@ -339,7 +339,7 @@ def generate_network(word, depth, similar_count, books, relation_type):
         #     st.warning("⚠️ Please select and load Bible books first!")
         else:
             st.info(f"Building network for '{user_word}' with {num_similar} similar words per level and depth of {search_depth}.")
-            if 'selected_books' in st.session_state:
+            if 'selected_books' in st.session_state and len(st.session_state['selected_books']) > 0:
                 st.info(f"Using books: {', '.join(st.session_state['selected_books'])}")
 
             NB = NetBuilder()
@@ -408,12 +408,6 @@ def bible_book_selector():
         st.session_state["multiselect_value"] = ["Genesis"]
 
     # --- Preset Buttons ---
-            #All books
-    if st.sidebar.button('Whole Bible'):
-        all_books = list(BIBLE_BOOKS.keys())
-        st.session_state["selected_books"] = all_books
-        st.session_state['multiselect_value'] = all_books
-
     if st.sidebar.button("Whole OT"):
         ot_books = [book for book, sec in BIBLE_BOOKS.items() if sec == "OT"]
         st.session_state["selected_books"] = ot_books
@@ -445,6 +439,8 @@ def bible_book_selector():
 
 if relation_type == "Syntagmatic":
     bible_book_selector()
+else:
+    st.session_state['selected_books'] = []
 
 if st.sidebar.button("Generate Semantic Network"):
     # Clear previous network when generating a new one
