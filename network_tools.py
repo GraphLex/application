@@ -24,6 +24,7 @@ class Algorithm(Enum):
 class Source(Enum):
     H = 0
     G = 1
+    E = 2
 
 
 class Corpus:
@@ -60,12 +61,14 @@ class NetBuilder():
         
     def lex_to_strongs(self, source: Source, lex: str) -> list[tuple[Source, int]]:
         # TODO: Stop trying to make these all one-liners.
-        match source:
-            case source.H:
-                return [[(Source[i[0]], int(i[1:].strip())) for i in item.split("＋")] for item in self.hb['strongno'][self.hb['lemma'] == lex].unique()][0]
-            case source.G:
-                return [[(Source[i[0]], int(i[1:].strip())) for i in item.split("＋")] for item in self.gnt['strongno'][self.gnt['lemma'] == lex].unique()][0]
-
+        try:
+            match source:
+                case source.H:
+                    return [[(Source[i[0]], int(i[1:].strip())) for i in item.split("＋")] for item in self.hb['strongno'][self.hb['lemma'] == lex].unique()][0]
+                case source.G:
+                    return [[(Source[i[0]], int(i[1:].strip())) for i in item.split("＋")] for item in self.gnt['strongno'][self.gnt['lemma'] == lex].unique()][0]
+        except:
+            return [(Source.E, 0)]
     
     def generate_comat(self, source: Source, window_size = 3, included_books = None) -> pd.DataFrame:
         df = self.hb if source == Source.H else self.gnt

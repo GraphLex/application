@@ -361,6 +361,7 @@ def generate_network(word, depth, similar_count, books, relation_type):
             counter = 1
             index = {}
             for n, attrs in vnet.nodes(data=True):
+                print(Source[st.session_state["strongs_prefix"]], n)
                 strongnums = NB.lex_to_strongs(Source[st.session_state["strongs_prefix"]], n)
                 strong_string = ""
                 for num in strongnums:
