@@ -1,30 +1,18 @@
 # =====================================================
-# Hebrew Word Visualization App (Streamlit)
-# Senior Capstone Prototype
+# GraphLex
+# Senior Capstone
 # =====================================================
-
-#TO DO for next time
-# : Go deeper into a particular word. Having a text box for specific word. Have a specific word where you can type it in.
-#Reimplement text box where you type in a specific hebrew word.
-#Paper: Target audience for the Paper. Next version of paper should have theoretical framework. 
-#Explaining the concepts. Have a concept map. Network or graph or semantical analysis. 2-3 concepts explained.
-
-#Line 337. Change to isinstance? What if this is not strong's input? Do we want to handle this?
 
 # --- Imports ---
 import streamlit as st
 import networkx as nx
-import warnings
-warnings.filterwarnings('ignore')
-# from pyvis.network import Network
 import streamlit.components.v1 as components
 from network_tools import NetBuilder, Algorithm, Source
-# from gensim.models.keyedvectors import KeyedVectors
 from st_link_analysis import st_link_analysis, NodeStyle, EdgeStyle
 
 
 # =====================================================
-# Bible Book Structure Dictionary
+# Bible Book Dictionaries
 # =====================================================
 BIBLE_BOOKS = {
     # Old Testament
@@ -250,9 +238,6 @@ relation_type = st.sidebar.radio(
     index = 0,
     help="Paradigmatic: semantic similarity | Syntagmatic: contextual co-occurrence"
 )
-
-#st.sidebar.markdown("---") # Adding a visual separator between sections here
-
 # ----------------------------------------------------
 
 ##If syntagmatic, then everything from Bible book selection onwards should appear.
@@ -318,15 +303,7 @@ def generate_network(word, depth, similar_count, books, relation_type):
         word = int(word)
     else:
         pass
-        # raise ValueError("Enter a number!")
-    # Check if it's a Strong's number (H#### or G####)
-    # elif word.startswith(('H', 'G')) and len(word) > 1 and word[1:].isdigit():
-    #     # Keep as string (e.g., "H430", "G2316")
-    #     # VocabNet will handle the Strong's number format
-    #     pass
-    # # Otherwise it's a Hebrew/Greek word - keep as string
-    # else:
-    #     pass
+    # TODO: Better error handling?
     
     with st.spinner("Generating network visualization..."):
         if 'network_generated' in st.session_state:
@@ -368,7 +345,6 @@ def generate_network(word, depth, similar_count, books, relation_type):
                 elements["nodes"].append({"data": {"id": n, "label": "LEMMA", "lexical_form": n, "strongs_numbers": strong_string}})
                 index[n] = counter
                 counter+=1
-                # print(index[n])
 
             print(index)
             for u, v, attrs in vnet.edges(data=True):
@@ -443,10 +419,4 @@ else:
     st.session_state['selected_books'] = []
 
 if st.sidebar.button("Generate Semantic Network"):
-    # Clear previous network when generating a new one
     generate_network(user_word, search_depth, num_similar, [BOOK_IDS[b_name] for b_name in st.session_state['selected_books']], relation_type)
-
-#THINGS TO BRING UP WITH RHYS: 
-#Change the UI on the app to have less space?
-#Any other app cleanup?
-#The paper
