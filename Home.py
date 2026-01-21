@@ -1,3 +1,5 @@
+import streamlit as st
+
 # =====================================================
 # Hebrew Word Visualization App (Streamlit)
 # Senior Capstone Prototype
@@ -171,7 +173,6 @@ st.set_page_config(
     page_icon="📊",
     layout="wide"
 )
-
 # =====================================================
 # App Title and Description
 # =====================================================
@@ -209,6 +210,7 @@ st.markdown("**Instructions:** Enter a Strong's Concordance Number on the left s
 #About section
 #------------------------------------------------------
 # st.sidebar.markdown("---")
+
 st.sidebar.header("📚 About")
 st.sidebar.markdown(
     "This tool generates networks of related words from Scripture. There are two types of relationships:\n\n" \
