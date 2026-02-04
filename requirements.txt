@@ -6,3 +6,4 @@ pandas
 pyarrow
 text-fabric
 st_link_analysis
+graphviz

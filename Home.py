@@ -1,9 +1,9 @@
 import streamlit as st
 
-# =====================================================
+
 # Hebrew Word Visualization App (Streamlit)
 # Senior Capstone Prototype
-# =====================================================
+
 
 #TO DO for next time
 # : Go deeper into a particular word. Having a text box for specific word. Have a specific word where you can type it in.
@@ -25,9 +25,7 @@ from network_tools import NetBuilder, Algorithm, Source
 from st_link_analysis import st_link_analysis, NodeStyle, EdgeStyle
 
 
-# =====================================================
 # Bible Book Structure Dictionary
-# =====================================================
 BIBLE_BOOKS = {
     # Old Testament
     "Genesis": "OT",
