@@ -19,11 +19,9 @@ with st.sidebar:
     st.divider()
     
     # Feedback button
-    st.markdown("Found a bug?")
-    st.markdown("[http://example.com]] Click here")
-    
+    st.markdown("Found a bug? [Report it here](https://wkf.ms/4rBJEOl)")
     st.divider()
-    st.caption("GraphLex v1.0 | Senior Capstone")
+    # st.caption("GraphLex v1.0 | Senior Capstone")
 
 #Main Header
 st.title("How to Use GraphLex")
@@ -179,4 +177,4 @@ with tab4:
         st.markdown("Lower the **Search Depth** to 1. Deep searches grow exponentially!")
 
 st.markdown("---")
-st.caption("GraphLex Project | Created by Rhett Seitz and Rhys Sharpe | Southern Adventist University")
+st.caption("GraphLex | Rhett Seitz and Rhys Sharpe | Southern Adventist University")

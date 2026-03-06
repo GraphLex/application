@@ -359,35 +359,45 @@ def generate_network(word, depth, similar_count, books, relation_type):
             counter = 1
             index = {}
             for n, attrs in vnet.nodes(data=True):
-                print(Source[st.session_state["strongs_prefix"]], n)
+                # print(Source[st.session_state["strongs_prefix"]], n)
                 strongnums = NB.lex_to_strongs(Source[st.session_state["strongs_prefix"]], n)
                 strong_string = ""
                 for num in strongnums:
                     strong_string += (num[0].name + str(num[1:][0]))
 
                 # take the list[tuple[Source, int]] and put it into a simple string
-                elements["nodes"].append({"data": {"id": n, "label": "LEMMA", "lexical_form": n, "strongs_numbers": strong_string}})
+                elements["nodes"].append({"data": {"id": n, "label": "Lemma", "Lexical_Form": NB.translit_to_raw(Source[st.session_state["strongs_prefix"]], n), "Transliterated Form": n, "strongs_numbers": strong_string}})
                 index[n] = counter
                 counter+=1
                 # print(index[n])
 
-            print(index)
+            # print(index)
+
+            edge_label = ""
+            edge_weight_label = ""
+            if algorithm == Algorithm.CON:
+                edge_label = "Syntagmatic_Relation"
+                edge_weight_label = "Frequency"
+            elif algorithm == Algorithm.W2V:
+                edge_label = "Paradigmatic_Relation"
+                edge_weight_label = "Similarity"
+                
             for u, v, attrs in vnet.edges(data=True):
                 elements["edges"].append(
-                    {"data": {"id": counter, "label": "SYNTAGMATIC_RELATION" if algorithm == Algorithm.CON else "PARADIGMATIC_RELATION", "frequency/similarity": str(attrs["weight"]), "source": u, "target": v}}
+                    {"data": {"id": counter, "label": edge_label, f"{edge_weight_label}": str(attrs["weight"]), "source": u, "target": v}}
                 )
-                print(f"u: {index[u]}, v: {index[v]}")
+                # print(f"u: {index[u]}, v: {index[v]}")
                 counter+=1
 
-            print(elements["edges"])
+            # print(elements["edges"])
 
             node_styles = [
-                NodeStyle("LEMMA", "#69A3DD", caption="lexical_form")
+                NodeStyle("Lemma", "#69A3DD", caption="Lexical_Form")
             ]
 
             edge_styles = [
-                EdgeStyle("SYNTAGMATIC_RELATION",  directed=True),
-                EdgeStyle("PARADIGMATIC_RELATION",  directed=True)
+                EdgeStyle("Syntagmatic_Relation",  directed=True),
+                EdgeStyle("Paradigmatic_Relation",  directed=True)
             ]
 
             st_link_analysis(elements, "cose", node_styles, edge_styles)
@@ -446,6 +456,10 @@ else:
 if st.sidebar.button("Generate Semantic Network"):
     # Clear previous network when generating a new one
     generate_network(user_word, search_depth, num_similar, [BOOK_IDS[b_name] for b_name in st.session_state['selected_books']], relation_type)
+
+
+st.markdown("---")
+st.caption("GraphLex | Rhett Seitz and Rhys Sharpe | CC-BY-NC 4.0 | Southern Adventist University")
 
 #THINGS TO BRING UP WITH RHYS: 
 #Change the UI on the app to have less space?

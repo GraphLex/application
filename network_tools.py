@@ -69,15 +69,25 @@ class NetBuilder():
                     return [[(Source[i[0]], int(i[1:].strip())) for i in item.split("＋")] for item in self.gnt['strongno'][self.gnt['lemma'] == lex].unique()][0]
         except:
             return [(Source.E, 0)]
-    
+
+    def translit_to_raw(self, source: Source, lex: str) -> str:
+        raw_lemma = ""
+        if source == Source.H:
+            raw_lemma = self.hb.loc[self.hb['lemma'] == lex]['display_lemma'].iloc[0]
+        elif source == Source.G:
+            raw_lemma = self.gnt.loc[self.gnt['lemma'] == lex]['display_lemma'].iloc[0]
+        else:
+            raise NotImplementedError
+        return raw_lemma
+
+
     def generate_comat(self, source: Source, window_size = 3, included_books = None) -> pd.DataFrame:
         df = self.hb if source == Source.H else self.gnt
-        
+    
         if included_books:
             df = df[df['book'].astype(int).isin(included_books)]
             df = df.reset_index(drop=True)
             print(f"incl_books, {included_books}, dflen {len(df)}, df {df}")
-
 
         wordmap: dict = {w: i for i, w in enumerate(df['lemma'])}
         lemmas: pd.Series = pd.Series(wordmap.keys(), index = list(range(len(wordmap))) ) 
@@ -134,7 +144,8 @@ class NetBuilder():
                                 search_word: str,
                                 num_steps: int,
                                 words_per_level: int,
-                                words_to_exclude: list[str] | None = None
+                                source: Source,
+                                words_to_exclude: list[str] | None = None,
                                 ):
         # Make sure the graph doesn't have stuff already in it
         # print(f"calling with num_steps = {num_steps}, word = {search_word}")
@@ -143,9 +154,9 @@ class NetBuilder():
             words_to_exclude = [search_word]
         if num_steps > 0:
             most_similar: pd.Series = self._most_similar(algo, search_word, df, words_per_level)
-            print(f"Most similar to {search_word}: \n{most_similar}")
+            # print(f"Most similar to {search_word}: \n{most_similar}")
             for rel_word, similarity in zip(most_similar.index, most_similar):
-                print(f"found {rel_word}")
+                # print(f"found {rel_word
                 self.dg.add_weighted_edges_from([(search_word, rel_word, similarity)])
                 if rel_word not in words_to_exclude:
                     words_to_exclude.append(rel_word)
@@ -154,6 +165,7 @@ class NetBuilder():
                                                     rel_word,
                                                     num_steps-1,
                                                     words_per_level,
+                                                    source,
                                                     words_to_exclude
                                                     )
 
@@ -189,6 +201,7 @@ class NetBuilder():
                                         word,
                                         num_steps,
                                         words_per_level,
+                                        source,
                                         words_to_exclude=None
                                         )
     
