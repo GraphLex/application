@@ -72,13 +72,28 @@ class NetBuilder():
 
     def translit_to_raw(self, source: Source, lex: str) -> str:
         raw_lemma = ""
+        try:
+            if source == Source.H:
+                raw_lemma = self.hb.loc[self.hb['lemma'] == lex]['display_lemma'].iloc[0]
+            elif source == Source.G:
+                raw_lemma = self.gnt.loc[self.gnt['lemma'] == lex]['display_lemma'].iloc[0]
+            else:
+                raise NotImplementedError
+        except IndexError:
+            print(f"index error transliterating {lex}")
+            raise IndexError
+        return raw_lemma
+    
+    def fetch_gloss(self, source: Source, lex: str) -> str:
+        # TODO: would it be possible to combine these data fetching calls into a single function with varying parameters? Better API design than just ad-hoc
+        gloss = ""
         if source == Source.H:
-            raw_lemma = self.hb.loc[self.hb['lemma'] == lex]['display_lemma'].iloc[0]
+            gloss = self.hb.loc[self.hb['lemma'] == lex]['gloss'].iloc[0]
         elif source == Source.G:
-            raw_lemma = self.gnt.loc[self.gnt['lemma'] == lex]['display_lemma'].iloc[0]
+            gloss = self.gnt.loc[self.gnt['lemma'] == lex]['gloss'].iloc[0]
         else:
             raise NotImplementedError
-        return raw_lemma
+        return gloss
 
 
     def generate_comat(self, source: Source, window_size = 3, included_books = None) -> pd.DataFrame:
@@ -156,7 +171,9 @@ class NetBuilder():
             most_similar: pd.Series = self._most_similar(algo, search_word, df, words_per_level)
             # print(f"Most similar to {search_word}: \n{most_similar}")
             for rel_word, similarity in zip(most_similar.index, most_similar):
-                # print(f"found {rel_word
+                if ((source == Source.H) and (self.hb.loc[self.hb['lemma'] == rel_word].empty)) or ((source == Source.G) and (self.gnt.loc[self.gnt['lemma'] == rel_word].empty)):
+                    words_to_exclude.append(rel_word)
+                    continue
                 self.dg.add_weighted_edges_from([(search_word, rel_word, similarity)])
                 if rel_word not in words_to_exclude:
                     words_to_exclude.append(rel_word)

@@ -366,7 +366,7 @@ def generate_network(word, depth, similar_count, books, relation_type):
                     strong_string += (num[0].name + str(num[1:][0]))
 
                 # take the list[tuple[Source, int]] and put it into a simple string
-                elements["nodes"].append({"data": {"id": n, "label": "Lemma", "Lexical_Form": NB.translit_to_raw(Source[st.session_state["strongs_prefix"]], n), "Transliterated Form": n, "strongs_numbers": strong_string}})
+                elements["nodes"].append({"data": {"id": n, "label": "Lemma", "Lexical_Form": NB.translit_to_raw(Source[st.session_state["strongs_prefix"]], n), "Transliterated Form": n, "Strong's Number(s)": strong_string, "Gloss": NB.fetch_gloss(Source[st.session_state["strongs_prefix"]], n)}})
                 index[n] = counter
                 counter+=1
                 # print(index[n])
