@@ -365,8 +365,9 @@ def generate_network(word, depth, similar_count, books, relation_type):
                 for num in strongnums:
                     strong_string += (num[0].name + str(num[1:][0]))
 
-                # take the list[tuple[Source, int]] and put it into a simple string
-                elements["nodes"].append({"data": {"id": n, "label": "Lemma", "Lexical_Form": NB.translit_to_raw(Source[st.session_state["strongs_prefix"]], n), "Transliterated Form": n, "Strong's Number(s)": strong_string, "Gloss": NB.fetch_gloss(Source[st.session_state["strongs_prefix"]], n)}})
+                # # take the list[tuple[Source, int]] and put it into a simple string
+                # target_lex = NB.process_strongs_input(st.session_state["strongs_prefix"], word)
+                elements["nodes"].append({"data": {"id": n, "label": "Original Lemma" if attrs.get("tag") == "root" else "Related Lemma", "Lexical_Form": NB.translit_to_raw(Source[st.session_state["strongs_prefix"]], n), "Transliterated Form": n, "Strong's Number(s)": strong_string, "Gloss": NB.fetch_gloss(Source[st.session_state["strongs_prefix"]], n)}})
                 index[n] = counter
                 counter+=1
                 # print(index[n])
@@ -392,7 +393,8 @@ def generate_network(word, depth, similar_count, books, relation_type):
             # print(elements["edges"])
 
             node_styles = [
-                NodeStyle("Lemma", "#69A3DD", caption="Lexical_Form")
+                NodeStyle("Original Lemma", "#FFF200", caption="Lexical_Form" ),
+                NodeStyle("Related Lemma", "#69A3DD", caption="Lexical_Form")
             ]
 
             edge_styles = [

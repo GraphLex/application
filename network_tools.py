@@ -95,7 +95,6 @@ class NetBuilder():
             raise NotImplementedError
         return gloss
 
-
     def generate_comat(self, source: Source, window_size = 3, included_books = None) -> pd.DataFrame:
         df = self.hb if source == Source.H else self.gnt
     
@@ -161,6 +160,7 @@ class NetBuilder():
                                 words_per_level: int,
                                 source: Source,
                                 words_to_exclude: list[str] | None = None,
+                                first: bool = False
                                 ):
         # Make sure the graph doesn't have stuff already in it
         # print(f"calling with num_steps = {num_steps}, word = {search_word}")
@@ -170,6 +170,8 @@ class NetBuilder():
         if num_steps > 0:
             most_similar: pd.Series = self._most_similar(algo, search_word, df, words_per_level)
             # print(f"Most similar to {search_word}: \n{most_similar}")
+            if first:
+                self.dg.add_node(search_word, tag="root")
             for rel_word, similarity in zip(most_similar.index, most_similar):
                 if ((source == Source.H) and (self.hb.loc[self.hb['lemma'] == rel_word].empty)) or ((source == Source.G) and (self.gnt.loc[self.gnt['lemma'] == rel_word].empty)):
                     words_to_exclude.append(rel_word)
@@ -219,7 +221,8 @@ class NetBuilder():
                                         num_steps,
                                         words_per_level,
                                         source,
-                                        words_to_exclude=None
+                                        words_to_exclude=None,
+                                        first = True
                                         )
     
     def get_network(self) -> nx.DiGraph:
