@@ -201,29 +201,64 @@ st.markdown(
 )
 
 # Instructions
-st.markdown("**Instructions:** Enter a Strong's Concordance Number on the left sidebar under Visualization Options. Select paradigmatic (similarity) or syntagmatic (co-occurrence) relationships and the network breadth and depth.")
+# st.markdown("**Instructions:** Enter a Strong's Concordance Number on the left sidebar under Visualization Options. Select paradigmatic (similarity) or syntagmatic (co-occurrence) relationships and the network breadth and depth.")
 
 
-#------------------------------------------------------
-#About section
-#------------------------------------------------------
-# st.sidebar.markdown("---")
+# #------------------------------------------------------
+# #About section
+# #------------------------------------------------------
+# # st.sidebar.markdown("---")
 
-st.sidebar.header("📚 About")
-st.sidebar.markdown(
-    "This tool generates networks of related words from Scripture. There are two types of relationships:\n\n" \
-    "- Paradigmatic relationships are those based on semantic similarity as measured by the Word2Vec algorithm. For instance, 'cat' and 'dog' would have high correlation.\n" \
-    "- Syntagmatic relationships are those based on co-occurrence counts. For instance, 'dog' and 'barks' would have high correlation."
+# st.sidebar.header("📚 About")
+# st.sidebar.markdown(
+#     "This tool generates networks of related words from Scripture. There are two types of relationships:\n\n" \
+#     "- Paradigmatic relationships are those based on semantic similarity as measured by the Word2Vec algorithm. For instance, 'cat' and 'dog' would have high correlation.\n" \
+#     "- Syntagmatic relationships are those based on co-occurrence counts. For instance, 'dog' and 'barks' would have high correlation."
+# )
+# st.sidebar.info("**Exegesis Tips**:\n\nBe aware of polysemy - many words can have more than one meaning, which these datasets may not not distinguish.\n\n"
+#                 "Do not assume theological significance to a relation simply because it's there. Ask why--why are these words related?"
+# )
+
+# st.info(f"Want a tutorial of how to use GraphLex? Take a look here:")
+st.page_link('./pages/Help and Tutorial.py', label="  Want a tutorial of how to use GraphLex? Take a look here!", icon="ℹ️")
+
+st.sidebar.header("🔡 Select a Word")
+# Strong's Number input with H/G prefix buttons
+
+strongs_prefix = st.sidebar.radio(
+    "Language",
+    options=["Hebrew (H)", "Greek (G)"],
+    index = 0,
+    help="Choose the Strong's number prefix (H for Hebrew and Aramaic, G for Greek)."
 )
-st.sidebar.info("**Exegesis Tips**:\n\nBe aware of polysemy - many words can have more than one meaning, which these datasets may not not distinguish.\n\n"
-                "Do not assume theological significance to a relation simply because it's there. Ask why--why are these words related?"
+
+
+# if st.sidebar.button("Hebrew", key="hebrew_btn", help="Hebrew Strong's"):
+#     st.session_state["strongs_prefix"] = "H"
+
+
+# if st.sidebar.button("Greek", key="greek_btn", help="Greek Strong's"):
+#     st.session_state["strongs_prefix"] = "G"
+
+# Initialize prefix if not set
+if "strongs_prefix" not in st.session_state:
+    st.session_state["strongs_prefix"] = "H"
+
+
+strongs_number = st.sidebar.text_input(
+    # f"Strong's Number ({st.session_state['strongs_prefix']})",
+    "Strong's Number (without prefix)",
+    placeholder="e.g., 430"
 )
+
+st.sidebar.divider()
+
 
 
 # =====================================================
 # Sidebar Configuration
 # =====================================================
-st.sidebar.header("🎛️ Visualization Options")
+st.sidebar.header("🎛️ Visualization Settings")
 
 # =====================================================
 # Word Embeddings Display
@@ -233,11 +268,12 @@ if 'network_generated' in st.session_state and st.session_state['network_generat
     # Display the network without regenerating
     components.html(st.session_state['network_html'], height=800)
 
+
 # =====================================================
 # Word Embeddings Sidebar Options
 # =====================================================
-st.sidebar.markdown("### Word Network Settings")
-st.sidebar.caption("Control how deeply and widely the Hebrew word network explores relationships.")
+# st.sidebar.markdown("### Word Network Settings")
+st.sidebar.caption("Control the algorithm, depth, and breadth used to generate the graph.")
 
 
 # =====================================================
@@ -258,26 +294,6 @@ relation_type = st.sidebar.radio(
 ##If syntagmatic, then everything from Bible book selection onwards should appear.
 # Everything under search depth should be blank if i choose paradigmatic
 
-# Strong's Number input with H/G prefix buttons
-col1, col2, col3 = st.sidebar.columns([1, 1, 3])
-
-with col1:
-    if st.button("H", key="hebrew_btn", help="Hebrew Strong's"):
-        st.session_state["strongs_prefix"] = "H"
-
-with col2:
-    if st.button("G", key="greek_btn", help="Greek Strong's"):
-        st.session_state["strongs_prefix"] = "G"
-
-# Initialize prefix if not set
-if "strongs_prefix" not in st.session_state:
-    st.session_state["strongs_prefix"] = "H"
-
-with col3:
-    strongs_number = st.sidebar.text_input(
-        f"Strong's Number ({st.session_state['strongs_prefix']})",
-        placeholder="e.g., 430"
-    )
 
 # Combine prefix + number for the final word
 if strongs_number:
@@ -311,7 +327,8 @@ def generate_network(word, depth, similar_count, books, relation_type):
         algorithm = Algorithm.CON
     else:
         algorithm = Algorithm.W2V
-    
+
+    st.session_state["strongs_prefix"] = strongs_prefix[-2:-1]
     # Handle different input types
     # Check if it's a plain number (old behavior)
     if word.isdigit():
@@ -454,8 +471,8 @@ if st.sidebar.button("Generate Semantic Network"):
     generate_network(user_word, search_depth, num_similar, [BOOK_IDS[b_name] for b_name in st.session_state['selected_books']], relation_type)
 
 
-st.markdown("---")
-st.caption("GraphLex | Rhett Seitz and Rhys Sharpe | CC-BY-NC 4.0 | Southern Adventist University")
+st.divider()
+st.caption("GraphLex | Rhett Seitz, Rhys Sharpe, and Dr. Germán H. Alférez | CC-BY-NC 4.0 | 2025-2026")
 
 #THINGS TO BRING UP WITH RHYS: 
 #Change the UI on the app to have less space?
