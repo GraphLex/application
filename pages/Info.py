@@ -1,25 +1,28 @@
 import streamlit as st
+import pandas as pd
 
 st.title("About GraphLex")
 
 st.markdown("""
-            ## About the Creators
+            ## Contributors
+This project was a group effort by multiple students and professors, without whom GraphLex would 
+            never have been more than an idea.
+
+Licensed as CC-BY-NC 4.0, 2025-2026.
 """)
 
-st.table([["Rhys Sharpe", "B.A. Archaeology (Near Eastern Studies)", "Research, backend programming, project management"],
-          ["Rhett Seitz", "B.S. Computer Science", "Application development, writing, applied research"],
-          ["Dr. Germán H. Alférez", "Professor, School of Computing", "Project supervisor"]])
-            
+authors = pd.DataFrame([["Rhett Seitz", "B.S. Computer Science", "Application development, writing, applied research", "rhettseitz@southern.edu"],
+          ["Rhys Sharpe", "B.A. Archaeology (Near Eastern Studies) and Computer Science", "Research, backend programming, project management", "davidrsharpe@southern.edu"],
+          ["Dr. Germán H. Alférez", "Professor, School of Computing", "Project supervisor", "harveya@southern.edu"]])
+authors.columns = ["Name", "Major/Position", "Role", "Email"]
+
+st.table(authors)
+
 st.markdown("""
 
 
-Developed 2025-2026. CC-BY-NC 4.0.
 
-Want to reach out to us? Feel free to email us:
-- davidrsharpe@southern.edu
-- rhettseitz@southern.edu
-- harveya@southern.edu
-            
+--- 
 ## Implementation
             
 ### Datasets
