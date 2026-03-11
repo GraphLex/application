@@ -13,6 +13,8 @@ import streamlit as st
 
 #Line 337. Change to isinstance? What if this is not strong's input? Do we want to handle this?
 
+#FIX THE DOUBLE CLICK when selecting books in the app. REmove selected books button. Put center button in tutorial
+
 # --- Imports ---
 import streamlit as st
 import networkx as nx
@@ -451,3 +453,5 @@ if st.sidebar.button("Generate Semantic Network"):
 #Change the UI on the app to have less space?
 #Any other app cleanup?
 #The paper
+
+#Johannine corpus (The Gospel of John and the Epistles of 1, 2, and 3 John) to isolate author-specific usage
