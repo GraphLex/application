@@ -203,29 +203,64 @@ st.markdown(
 )
 
 # Instructions
-st.markdown("**Instructions:** Enter a Strong's Concordance Number on the left sidebar under Visualization Options. Select paradigmatic (similarity) or syntagmatic (co-occurrence) relationships and the network breadth and depth.")
+# st.markdown("**Instructions:** Enter a Strong's Concordance Number on the left sidebar under Visualization Options. Select paradigmatic (similarity) or syntagmatic (co-occurrence) relationships and the network breadth and depth.")
 
 
-#------------------------------------------------------
-#About section
-#------------------------------------------------------
-# st.sidebar.markdown("---")
+# #------------------------------------------------------
+# #About section
+# #------------------------------------------------------
+# # st.sidebar.markdown("---")
 
-st.sidebar.header("📚 About")
-st.sidebar.markdown(
-    "This tool generates networks of related words from Scripture. There are two types of relationships:\n\n" \
-    "- Paradigmatic relationships are those based on semantic similarity as measured by the Word2Vec algorithm. For instance, 'cat' and 'dog' would have high correlation.\n" \
-    "- Syntagmatic relationships are those based on co-occurrence counts. For instance, 'dog' and 'barks' would have high correlation."
+# st.sidebar.header("📚 About")
+# st.sidebar.markdown(
+#     "This tool generates networks of related words from Scripture. There are two types of relationships:\n\n" \
+#     "- Paradigmatic relationships are those based on semantic similarity as measured by the Word2Vec algorithm. For instance, 'cat' and 'dog' would have high correlation.\n" \
+#     "- Syntagmatic relationships are those based on co-occurrence counts. For instance, 'dog' and 'barks' would have high correlation."
+# )
+# st.sidebar.info("**Exegesis Tips**:\n\nBe aware of polysemy - many words can have more than one meaning, which these datasets may not not distinguish.\n\n"
+#                 "Do not assume theological significance to a relation simply because it's there. Ask why--why are these words related?"
+# )
+
+# st.info(f"Want a tutorial of how to use GraphLex? Take a look here:")
+st.page_link('./pages/Help and Tutorial.py', label="  Want a tutorial of how to use GraphLex? Take a look here!", icon="ℹ️")
+
+st.sidebar.header("🔡 Select a Word")
+# Strong's Number input with H/G prefix buttons
+
+strongs_prefix = st.sidebar.radio(
+    "Language",
+    options=["Hebrew (H)", "Greek (G)"],
+    index = 0,
+    help="Choose the Strong's number prefix (H for Hebrew and Aramaic, G for Greek)."
 )
-st.sidebar.info("**Exegesis Tips**:\n\nBe aware of polysemy - many words can have more than one meaning, which these datasets may not not distinguish.\n\n"
-                "Do not assume theological significance to a relation simply because it's there. Ask why--why are these words related?"
+
+
+# if st.sidebar.button("Hebrew", key="hebrew_btn", help="Hebrew Strong's"):
+#     st.session_state["strongs_prefix"] = "H"
+
+
+# if st.sidebar.button("Greek", key="greek_btn", help="Greek Strong's"):
+#     st.session_state["strongs_prefix"] = "G"
+
+# Initialize prefix if not set
+if "strongs_prefix" not in st.session_state:
+    st.session_state["strongs_prefix"] = "H"
+
+
+strongs_number = st.sidebar.text_input(
+    # f"Strong's Number ({st.session_state['strongs_prefix']})",
+    "Strong's Number (without prefix)",
+    placeholder="e.g., 430"
 )
+
+st.sidebar.divider()
+
 
 
 # =====================================================
 # Sidebar Configuration
 # =====================================================
-st.sidebar.header("🎛️ Visualization Options")
+st.sidebar.header("🎛️ Visualization Settings")
 
 # =====================================================
 # Word Embeddings Display
@@ -235,11 +270,12 @@ if 'network_generated' in st.session_state and st.session_state['network_generat
     # Display the network without regenerating
     components.html(st.session_state['network_html'], height=800)
 
+
 # =====================================================
 # Word Embeddings Sidebar Options
 # =====================================================
-st.sidebar.markdown("### Word Network Settings")
-st.sidebar.caption("Control how deeply and widely the Hebrew word network explores relationships.")
+# st.sidebar.markdown("### Word Network Settings")
+st.sidebar.caption("Control the algorithm, depth, and breadth used to generate the graph.")
 
 
 # =====================================================
@@ -260,26 +296,6 @@ relation_type = st.sidebar.radio(
 ##If syntagmatic, then everything from Bible book selection onwards should appear.
 # Everything under search depth should be blank if i choose paradigmatic
 
-# Strong's Number input with H/G prefix buttons
-col1, col2, col3 = st.sidebar.columns([1, 1, 3])
-
-with col1:
-    if st.button("H", key="hebrew_btn", help="Hebrew Strong's"):
-        st.session_state["strongs_prefix"] = "H"
-
-with col2:
-    if st.button("G", key="greek_btn", help="Greek Strong's"):
-        st.session_state["strongs_prefix"] = "G"
-
-# Initialize prefix if not set
-if "strongs_prefix" not in st.session_state:
-    st.session_state["strongs_prefix"] = "H"
-
-with col3:
-    strongs_number = st.sidebar.text_input(
-        f"Strong's Number ({st.session_state['strongs_prefix']})",
-        placeholder="e.g., 430"
-    )
 
 # Combine prefix + number for the final word
 if strongs_number:
@@ -313,7 +329,8 @@ def generate_network(word, depth, similar_count, books, relation_type):
         algorithm = Algorithm.CON
     else:
         algorithm = Algorithm.W2V
-    
+
+    st.session_state["strongs_prefix"] = strongs_prefix[-2:-1]
     # Handle different input types
     # Check if it's a plain number (old behavior)
     if word.isdigit():
@@ -361,35 +378,41 @@ def generate_network(word, depth, similar_count, books, relation_type):
             counter = 1
             index = {}
             for n, attrs in vnet.nodes(data=True):
-                print(Source[st.session_state["strongs_prefix"]], n)
                 strongnums = NB.lex_to_strongs(Source[st.session_state["strongs_prefix"]], n)
                 strong_string = ""
                 for num in strongnums:
                     strong_string += (num[0].name + str(num[1:][0]))
 
-                # take the list[tuple[Source, int]] and put it into a simple string
-                elements["nodes"].append({"data": {"id": n, "label": "LEMMA", "lexical_form": n, "strongs_numbers": strong_string}})
+                # Credit: Assistance from Claude for figuring out NetworkX tags
+                elements["nodes"].append({"data": {"id": n, "label": "Original Lemma" if attrs.get("tag") == "root" else "Related Lemma", "Lexical_Form": NB.translit_to_raw(Source[st.session_state["strongs_prefix"]], n), "Transliterated Form": n, "Strong's Number(s)": strong_string, "Gloss": NB.fetch_gloss(Source[st.session_state["strongs_prefix"]], n)}})
                 index[n] = counter
                 counter+=1
-                # print(index[n])
 
-            print(index)
+            edge_label = ""
+            edge_weight_label = ""
+            if algorithm == Algorithm.CON:
+                edge_label = "Syntagmatic_Relation"
+                edge_weight_label = "Frequency"
+            elif algorithm == Algorithm.W2V:
+                edge_label = "Paradigmatic_Relation"
+                edge_weight_label = "Similarity"
+                
             for u, v, attrs in vnet.edges(data=True):
                 elements["edges"].append(
-                    {"data": {"id": counter, "label": "SYNTAGMATIC_RELATION" if algorithm == Algorithm.CON else "PARADIGMATIC_RELATION", "frequency/similarity": str(attrs["weight"]), "source": u, "target": v}}
+                    {"data": {"id": counter, "label": edge_label, f"{edge_weight_label}": str(attrs["weight"]), "source": u, "target": v}}
                 )
-                print(f"u: {index[u]}, v: {index[v]}")
+
                 counter+=1
 
-            print(elements["edges"])
 
             node_styles = [
-                NodeStyle("LEMMA", "#69A3DD", caption="lexical_form")
+                NodeStyle("Original Lemma", "#FFF200", caption="Lexical_Form" ),
+                NodeStyle("Related Lemma", "#69A3DD", caption="Lexical_Form")
             ]
 
             edge_styles = [
-                EdgeStyle("SYNTAGMATIC_RELATION",  directed=True),
-                EdgeStyle("PARADIGMATIC_RELATION",  directed=True)
+                EdgeStyle("Syntagmatic_Relation",  directed=True),
+                EdgeStyle("Paradigmatic_Relation",  directed=True)
             ]
 
             st_link_analysis(elements, "cose", node_styles, edge_styles)
@@ -448,6 +471,10 @@ else:
 if st.sidebar.button("Generate Semantic Network"):
     # Clear previous network when generating a new one
     generate_network(user_word, search_depth, num_similar, [BOOK_IDS[b_name] for b_name in st.session_state['selected_books']], relation_type)
+
+
+st.divider()
+st.caption("GraphLex | Rhett Seitz, Rhys Sharpe, and Dr. Germán H. Alférez | CC-BY-NC 4.0 | 2025-2026")
 
 #THINGS TO BRING UP WITH RHYS: 
 #Change the UI on the app to have less space?
