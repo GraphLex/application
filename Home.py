@@ -5,15 +5,15 @@ import streamlit as st
 # Senior Capstone Prototype
 
 
-#TO DO for next time
-# : Go deeper into a particular word. Having a text box for specific word. Have a specific word where you can type it in.
+
+# : Having a text box for specific word. Have a specific word where you can type it in.
 #Reimplement text box where you type in a specific hebrew word.
-#Paper: Target audience for the Paper. Next version of paper should have theoretical framework. 
-#Explaining the concepts. Have a concept map. Network or graph or semantical analysis. 2-3 concepts explained.
 
 #Line 337. Change to isinstance? What if this is not strong's input? Do we want to handle this?
 
 #FIX THE DOUBLE CLICK when selecting books in the app. REmove selected books button. Put center button in tutorial
+#FIX SELECTED BOOK Button.
+#Fix Book cancellation
 
 # --- Imports ---
 import streamlit as st
@@ -297,9 +297,15 @@ relation_type = st.sidebar.radio(
 # Everything under search depth should be blank if i choose paradigmatic
 
 
+# Grab the live 'H' or 'G' directly from the radio button choice
+current_prefix = "H" if "Hebrew" in strongs_prefix else "G"
+
+# Sync the session state instantly so the rest of the app matches
+st.session_state['strongs_prefix'] = current_prefix
+
 # Combine prefix + number for the final word
 if strongs_number:
-    user_word = f"{st.session_state['strongs_prefix']}{strongs_number}"
+    user_word = f"{current_prefix}{strongs_number}"
 else:
     user_word = ""
 
@@ -330,7 +336,9 @@ def generate_network(word, depth, similar_count, books, relation_type):
     else:
         algorithm = Algorithm.W2V
 
-    st.session_state["strongs_prefix"] = strongs_prefix[-2:-1]
+    #Commented this line as I added it down below
+    #st.session_state["strongs_prefix"] = strongs_prefix[-2:-1]
+
     # Handle different input types
     # Check if it's a plain number (old behavior)
     if word.isdigit():
@@ -363,14 +371,20 @@ def generate_network(word, depth, similar_count, books, relation_type):
 
             NB = NetBuilder()
 
-            #CHANGED THIS below: Now Build the word network using the selected linguistic relationship model
-            
-            NB.generate_word_search_network(
-                algorithm,
-                word,
-                num_steps=depth,
-                words_per_level=similar_count,
-                books_to_include=books) 
+            # CHANGED THIS below: Now Build the word network using the selected linguistic relationship model
+            # NOTE: Added this try and except block here so if a user types in a super rare word
+            # the app will stay perfectly intact and just display a friendly yellow/red warning telling them why it didn't work.
+        
+            try:
+                NB.generate_word_search_network(
+                    algorithm,
+                    word,
+                    num_steps=depth,
+                    words_per_level=similar_count,
+                    books_to_include=books) 
+            except KeyError:
+                st.error(f"⚠️ Word '{user_word}' not found in the dataset. It may occur too infrequently to be included in the network model.")
+                return # This stops the rest of the function from running and crashing
             
             vnet = NB.get_network()
 
@@ -421,47 +435,36 @@ def generate_network(word, depth, similar_count, books, relation_type):
                 components.html(st.session_state['network_html'], height=800)
 
 
-# =====================================================
+# ===
 # Bible Book Selector (Multi-select) with Presets
-# =====================================================
+# ===
 def bible_book_selector():
 
     st.sidebar.markdown("### 📖 Bible Book Selection")
     st.sidebar.caption("Select one or more books to analyze")
 
-    # Initialize multiselect value if not set
-    if "multiselect_value" not in st.session_state:
-        st.session_state["multiselect_value"] = ["Genesis"]
+    # 1. Initialize the session state key directly (No shadow variables)
+    if "selected_books" not in st.session_state:
+        st.session_state["selected_books"] = ["Genesis"]
 
-    # --- Preset Buttons ---
-    if st.sidebar.button("Whole OT"):
-        ot_books = [book for book, sec in BIBLE_BOOKS.items() if sec == "OT"]
-        st.session_state["selected_books"] = ot_books
-        st.session_state["multiselect_value"] = ot_books
+    # 2. Preset Buttons
+    # Optional UI tweak: I put these in columns so they sit side-by-side!
+    col1, col2 = st.sidebar.columns(2)
+    if col1.button("Whole OT"):
+        st.session_state["selected_books"] = [book for book, sec in BIBLE_BOOKS.items() if sec == "OT"]
 
-    if st.sidebar.button("Whole NT"):
-        nt_books = [book for book, sec in BIBLE_BOOKS.items() if sec == "NT"]
-        st.session_state["selected_books"] = nt_books
-        st.session_state["multiselect_value"] = nt_books
+    if col2.button("Whole NT"):
+        st.session_state["selected_books"] = [book for book, sec in BIBLE_BOOKS.items() if sec == "NT"]
 
-    # --- Multiselect (uses session state value) ---
-    selected_books = st.sidebar.multiselect(
+    # 3. Multiselect
+    # By using the 'key' parameter, Streamlit automatically syncs this widget 
+    # with st.session_state["selected_books"] without the glitchy 'default' bouncing!
+    st.sidebar.multiselect(
         "Choose Bible Books",
         options=list(BIBLE_BOOKS.keys()),
-        default=st.session_state["multiselect_value"],
+        key="selected_books",
         help="Select multiple books to calculate co-occurrence frequency",
     )
-
-    # Keep session state in sync
-    st.session_state["selected_books"] = selected_books
-    st.session_state["multiselect_value"] = selected_books
-
-    # --- Load Books Button ---
-    if st.sidebar.button("📥 Load Selected Books", type="primary"):
-        if selected_books:
-            st.sidebar.success(f"✅ Loaded {len(selected_books)} book(s)")
-        else:
-            st.sidebar.warning("⚠️ Please select at least one book")
 
 if relation_type == "Syntagmatic":
     bible_book_selector()
@@ -475,10 +478,3 @@ if st.sidebar.button("Generate Semantic Network"):
 
 st.divider()
 st.caption("GraphLex | Rhett Seitz, Rhys Sharpe, and Dr. Germán H. Alférez | CC-BY-NC 4.0 | 2025-2026")
-
-#THINGS TO BRING UP WITH RHYS: 
-#Change the UI on the app to have less space?
-#Any other app cleanup?
-#The paper
-
-#Johannine corpus (The Gospel of John and the Epistles of 1, 2, and 3 John) to isolate author-specific usage
