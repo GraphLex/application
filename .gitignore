@@ -4,12 +4,19 @@ sim_graph.html
 tsne.csv
 *.docx
 podman files/
+home-old.py
+run.sh
+test.txt
+test_proc.py
+resources/old_resources/
+resources/resources/
 
 # Python cache and compiled files
 __pycache__/
 *.py[cod]
 *$py.class
 *.so
+.streamlit/
 
 # Virtual environments
 venv/
@@ -32,4 +39,3 @@ Thumbs.db
 
 # Environment variables
 .env
-home-old.py
