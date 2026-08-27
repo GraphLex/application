@@ -7,6 +7,7 @@ from gensim import utils
 from typing import Literal
 from enum import Enum
 import streamlit as st
+import time
 
 # create a wrapper class for a nx.DiGraph to allow for easier use by external functions
 # or is that just more confusing for people using this later?
@@ -96,25 +97,49 @@ class NetBuilder():
         return gloss
 
     def generate_comat(self, source: Source, window_size = 3, included_books = None) -> pd.DataFrame:
+        t10 = time.perf_counter()
         df = self.hb if source == Source.H else self.gnt
     
+
         if included_books:
             df = df[df['book'].astype(int).isin(included_books)]
             df = df.reset_index(drop=True)
             print(f"incl_books, {included_books}, dflen {len(df)}, df {df}")
 
+        t11 = time.perf_counter()
+        print(f"Filtered df in {t11 - t10:.4f} seconds")
+        t12 = time.perf_counter()
         wordmap: dict = {w: i for i, w in enumerate(df['lemma'])}
         lemmas: pd.Series = pd.Series(wordmap.keys(), index = list(range(len(wordmap))) ) 
         lemma_index = pd.Index(lemmas)
 
         word_count = len(df['lemma'])
         lemmalen = len(lemmas)
+        t13 = time.perf_counter()
+        print(f"Generated lemma index in {t13 - t12:.4f} seconds")
         
+        t14 = time.perf_counter()
+        # performance draw is here
         comat = np.zeros((lemmalen,lemmalen), dtype=int)
+        i1_total = 0
+        i2_total = 0
+        i3_total = 0
         for idx, lemma in enumerate(df['lemma']):
             for j in range(max(0, idx - window_size), min(word_count, idx + window_size + 1)):
-                comat[lemma_index.get_loc(lemma)][lemma_index.get_loc(df['lemma'][j])] += 1
+                t15 = time.perf_counter()
+                idx0 = lemma_index.get_loc(lemma)
+                t16 = time.perf_counter()
+                idx1 = lemma_index.get_loc(df['lemma'][j]) # so much time is getting spent here (64% of the time.)
+                t17 = time.perf_counter()
+                comat[idx0][idx1] += 1
+                t18 = time.perf_counter()
+                i1_total += t16-t15
+                i2_total += t17-t16
+                i3_total += t18-t17
+        print(f"i1_total: {i1_total:.4f}, i2_total: {i2_total:.4f}, i3_total: {i3_total:.4f}")
             
+        t15 = time.perf_counter()
+        print(f"Generated co-occurrence matrix in {t15 - t14:.4f} seconds")
         return pd.DataFrame(comat, index=lemmas, columns=lemmas)            
         
     def process_book_input(self, book: str) -> str:
@@ -168,15 +193,27 @@ class NetBuilder():
         if words_to_exclude is None:
             words_to_exclude = [search_word]
         if num_steps > 0:
+            t8 = time.perf_counter()
+            # ~53% of the time in this algorithm is spent in this line of code \/
             most_similar: pd.Series = self._most_similar(algo, search_word, df, words_per_level)
+            t9 = time.perf_counter()
+            print(f"Calculated most similar words to {search_word} in {t9 - t8:.4f} seconds")
             # print(f"Most similar to {search_word}: \n{most_similar}")
             if first:
                 self.dg.add_node(search_word, tag="root")
             for rel_word, similarity in zip(most_similar.index, most_similar):
-                if ((source == Source.H) and (self.hb.loc[self.hb['lemma'] == rel_word].empty)) or ((source == Source.G) and (self.gnt.loc[self.gnt['lemma'] == rel_word].empty)):
+                t4 = time.perf_counter()
+                # ~49% of the time in this algorithm is spent in this line of code \/
+                if ((source == Source.H) and self.hb.loc[self.hb['lemma'] == rel_word].empty) or ((source == Source.G) and
+                                                                                                  self.gnt.loc[self.gnt['lemma'] == rel_word].empty):
                     words_to_exclude.append(rel_word)
                     continue
-                self.dg.add_weighted_edges_from([(search_word, rel_word, similarity)])
+                t5 = time.perf_counter()
+                # print(f"Checked for existence of {rel_word} in {source.name} in {t5 - t4:.4f} seconds")
+                t6 = time.perf_counter()
+                self.dg.add_weighted_edges_from([(search_word, rel_word, similarity)]) #3.59e-4% of total time
+                t7 = time.perf_counter()
+                # print(f"Added edge from {search_word} to {rel_word} in {t7 - t6:.10f} seconds")
                 if rel_word not in words_to_exclude:
                     words_to_exclude.append(rel_word)
                     self._build_word_search_network(df,
@@ -198,6 +235,7 @@ class NetBuilder():
                                     books_to_include: list[str],
                                     **kwargs
                                     ):
+        t0 = time.perf_counter()
         df = None
 
         retrain = False
@@ -207,12 +245,16 @@ class NetBuilder():
         word = _self.process_strongs_input(unparsed_word[0], int(unparsed_word[1:])) #type: ignore
         source = Source[unparsed_word[0]]
 
+        t1 = time.perf_counter()
+        print(f"Processed word {unparsed_word} to {word} in {t1 - t0:.4f} seconds") # autogen
         if algo == Algorithm.CON:
             df = _self.generate_comat(source, included_books=books_to_include)            
         elif algo == Algorithm.W2V:
             df = _self._generate_w2v_similarity_matrix(source=source, retrain=retrain) 
         else:
             raise NotImplementedError
+        t2 = time.perf_counter()
+        print(f"Generated similarity matrix in {t2 - t1:.4f} seconds") # autogen
         assert(df is not None)
         print(df)
         _self._build_word_search_network(df,
@@ -224,6 +266,9 @@ class NetBuilder():
                                         words_to_exclude=None,
                                         first = True
                                         )
-    
+        t3 = time.perf_counter()
+        print(f"Built network in {t3 - t2:.4f} seconds")
+
+
     def get_network(self) -> nx.DiGraph:
         return self.dg
