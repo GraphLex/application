@@ -1,0 +1,18 @@
+[project]
+name = "GraphLex"
+version = "1.0.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.13, !=3.14"
+dependencies = [
+    "gensim>=4.4.0",
+    "graphviz>=0.21",
+    "networkx>=3.6.1",
+    "pandas>=3.0.5",
+    "pip>=26.2.1",
+    "pyarrow>=25.0.1",
+    "pyvis>=0.3.2",
+    "st-link-analysis>=0.4.0",
+    "streamlit>=1.62.0",
+    "text-fabric>=13.1.0",
+]
