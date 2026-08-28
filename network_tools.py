@@ -1,13 +1,11 @@
 import networkx as nx
 import pandas as pd
 import numpy as np
-from gensim.models import Word2Vec
-from gensim.models.keyedvectors import KeyedVectors
-from gensim import utils
-from typing import Literal
-from enum import Enum
 import streamlit as st
 import time
+from gensim.models import Word2Vec
+from typing import Literal
+from enum import Enum
 
 # create a wrapper class for a nx.DiGraph to allow for easier use by external functions
 # or is that just more confusing for people using this later?
@@ -18,48 +16,64 @@ import time
 # And on that note, figure out what the practical limits for drawing inferences based
 # on dataset size are - there should be papers on that
 
+
+# This enum allows for setting different algorithms.
 class Algorithm(Enum):
-    CON = 0
-    W2V = 1
+    CON = 0 # co-occurrence
+    W2V = 1 # Word2Vec
 
+# This enum allows setting different sources.
 class Source(Enum):
-    H = 0
-    G = 1
-    E = 2
+    H = 0 # Hebrew Old Testament
+    G = 1 # Greek New Testament
+    E = 2 # Empty
+    A = 3 # Aramaic Old Testament
+    S = 4 # Septuagint
 
 
+# The corpus class required for Gensim training.
 class Corpus:
     def __init__(self, df):
         self.df = df
     
     def __iter__(self):
-        '''Returns a generator that returns a list of each book in turn.'''
+        """Returns a generator that returns a list of each book in turn."""
         if self.df is not None:
             grouped = self.df.groupby('book')
             for _, group in grouped:
                 yield list(group['lemma'])
 
-class NetBuilder():
+
+def _initialize_con_df(lemmas: pd.Series) -> pd.DataFrame:
+    # Little bit of a conceptual help from ChatGPT on dataframe initialization
+    # TODO: Is there a more efficient way to do this?
+    df = pd.DataFrame(index=lemmas, columns=lemmas, dtype=int)
+    for col in df.columns:
+        df[col] = 0
+    return df
+
+
+def _most_similar(algo: Algorithm, word: str, df: pd.DataFrame, topn: int) -> pd.Series:
+    match algo:
+        case Algorithm.CON:
+            return pd.Series(df.drop(word, axis=0)[word].nlargest(topn))
+        case Algorithm.W2V:
+            return pd.Series(df.drop(word, axis=0)[word].nlargest(topn))
+
+# What is this function doing here??
+def process_book_input(book: str) -> str:
+    return "00"
+
+
+class NetBuilder:
     def __init__(self):
+        """Loads datasets from the resources directory and creates an empty DiGraph,
+        storing them in a new NetBuilder object."""
+        # To do - make this a dictionary of datasets eventually.
         self.hb: pd.DataFrame = pd.read_parquet("resources/hb.parquet")
         self.gnt: pd.DataFrame = pd.read_parquet("resources/gnt.parquet")
         self.dg: nx.DiGraph = nx.DiGraph()
 
-    def _initialize_con_df(self, lemmas: pd.Series) -> pd.DataFrame:
-        # Little bit of a conceptual help from ChatGPT on dataframe initialization
-        # TODO: Is there a more efficient way to do this?
-        df = pd.DataFrame(index=lemmas, columns=lemmas, dtype=int)
-        for col in df.columns:
-            df[col] = 0
-        return df
-
-    def _most_similar(self, algo: Algorithm, word: str, df: pd.DataFrame, topn: int) -> pd.Series:
-        match algo:
-            case Algorithm.CON:
-                return pd.Series(df.drop(word, axis=0)[word].nlargest(topn))     
-            case Algorithm.W2V:
-                return pd.Series(df.drop(word, axis=0)[word].nlargest(topn))
-        
     def lex_to_strongs(self, source: Source, lex: str) -> list[tuple[Source, int]]:
         # TODO: Stop trying to make these all one-liners.
         try:
@@ -140,10 +154,7 @@ class NetBuilder():
             
         t15 = time.perf_counter()
         print(f"Generated co-occurrence matrix in {t15 - t14:.4f} seconds")
-        return pd.DataFrame(comat, index=lemmas, columns=lemmas)            
-        
-    def process_book_input(self, book: str) -> str:
-        return "00"
+        return pd.DataFrame(comat, index=lemmas, columns=lemmas)
 
     def process_strongs_input(self, code: Literal['H', 'G'], num: int) -> str:
         '''TODO: Add param docs here'''
@@ -195,7 +206,7 @@ class NetBuilder():
         if num_steps > 0:
             t8 = time.perf_counter()
             # ~53% of the time in this algorithm is spent in this line of code \/
-            most_similar: pd.Series = self._most_similar(algo, search_word, df, words_per_level)
+            most_similar: pd.Series = _most_similar(algo, search_word, df, words_per_level)
             t9 = time.perf_counter()
             print(f"Calculated most similar words to {search_word} in {t9 - t8:.4f} seconds")
             # print(f"Most similar to {search_word}: \n{most_similar}")
