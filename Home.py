@@ -19,10 +19,13 @@ import streamlit as st
 import streamlit as st
 import networkx as nx
 import warnings
+
+import network_tools
+
 warnings.filterwarnings('ignore')
 # from pyvis.network import Network
 import streamlit.components.v1 as components
-from network_tools import NetBuilder, Algorithm, Source
+from network_tools import NetBuilder, Algorithm, Source, strongs_to_source
 # from gensim.models.keyedvectors import KeyedVectors
 from st_link_analysis import st_link_analysis, NodeStyle, EdgeStyle
 
@@ -392,13 +395,13 @@ def generate_network(word, depth, similar_count, books, relation_type):
             counter = 1
             index = {}
             for n, attrs in vnet.nodes(data=True):
-                strongnums = NB.lex_to_strongs(Source[st.session_state["strongs_prefix"]], n)
+                strongnums = NB.lex_to_strongs(strongs_to_source[st.session_state["strongs_prefix"]], n)
                 strong_string = ""
                 for num in strongnums:
-                    strong_string += (num[0].name + str(num[1:][0]))
+                    strong_string += (st.session_state["strongs_prefix"] + str(num[1:][0]))
 
                 # Credit: Assistance from Claude for figuring out NetworkX tags
-                elements["nodes"].append({"data": {"id": n, "label": "Original Lemma" if attrs.get("tag") == "root" else "Related Lemma", "Lexical_Form": NB.translit_to_raw(Source[st.session_state["strongs_prefix"]], n), "Transliterated Form": n, "Strong's Number(s)": strong_string, "Gloss": NB.fetch_gloss(Source[st.session_state["strongs_prefix"]], n)}})
+                elements["nodes"].append({"data": {"id": n, "label": "Original Lemma" if attrs.get("tag") == "root" else "Related Lemma", "Lexical_Form": NB.translit_to_raw(strongs_to_source[st.session_state["strongs_prefix"]], n), "Transliterated Form": n, "Strong's Number(s)": strong_string, "Gloss": NB.fetch_gloss(strongs_to_source[st.session_state["strongs_prefix"]], n)}})
                 index[n] = counter
                 counter+=1
 

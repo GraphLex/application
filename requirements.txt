@@ -7,3 +7,5 @@ pyarrow
 text-fabric
 st_link_analysis
 graphviz
+numpy
+numpy

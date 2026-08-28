@@ -10,6 +10,7 @@ test.txt
 test_proc.py
 resources/old_resources/
 resources/resources/
+devlog.md
 
 # Python cache and compiled files
 __pycache__/
