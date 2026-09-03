@@ -19,13 +19,13 @@ import streamlit as st
 import streamlit as st
 import networkx as nx
 import warnings
-
-import network_tools
+import traceback
+import corpus_analysis
 
 warnings.filterwarnings('ignore')
 # from pyvis.network import Network
 import streamlit.components.v1 as components
-from network_tools import NetBuilder, Algorithm, Source, strongs_to_source
+from corpus_analysis import NetBuilder, Algorithm, Source, strongs_to_source
 # from gensim.models.keyedvectors import KeyedVectors
 from st_link_analysis import st_link_analysis, NodeStyle, EdgeStyle
 
@@ -385,8 +385,9 @@ def generate_network(word, depth, similar_count, books, relation_type):
                     num_steps=depth,
                     words_per_level=similar_count,
                     books_to_include=books) 
-            except KeyError:
-                st.error(f"⚠️ Word '{user_word}' not found in the dataset. It may occur too infrequently to be included in the network model.")
+            except KeyError as e:
+                st.error(f"⚠️ Word '{user_word}' not found in the dataset. It may occur too infrequently to be included. Please contact the authors for assistance.")
+                traceback.print_exception(e)
                 return # This stops the rest of the function from running and crashing
             
             vnet = NB.get_network()
